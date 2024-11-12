@@ -1,6 +1,6 @@
 #ifndef ROMSELECT
 #define ROMSELECT
-#define ROMINFOFILE "/currentloadedrom.txt"
+
 #define SWVERSION "VX.X"
 
 #if PICO_RP2350

@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "FrensHelpers.h"
+
 #include <pico.h>
 #include "pico/stdlib.h"
 #include "hardware/flash.h"
@@ -21,6 +21,7 @@
 #include <hardware/divider.h>
 #include <tusb.h>
 #include "FrensFonts.h"
+#include "FrensHelpers.h"
 
 #define SCREEN_COLS 32
 #define SCREEN_ROWS 29
@@ -31,9 +32,6 @@
 
 #define VISIBLEPATHSIZE (SCREEN_COLS - 3)   
 
-extern std::unique_ptr<dvi::DVI> dvi_;
-
-void screenMode(int incr);
 
 #define CC(x) (((x >> 1) & 15) | (((x >> 6) & 15) << 4) | (((x >> 11) & 15) << 8))
 const WORD NesMenuPalette[64] = {
@@ -199,14 +197,14 @@ void RomSelect_PadState(DWORD *pdwPad1, bool ignorepushed = false)
             resetColors(prevFgColor, prevBgColor);
         } else if ( pushed & A ) {
             printf("Saving colors to settings file.\n");
-            savesettings();
+            Frens::savesettings();
         } else if ( pushed & B ) {
             printf("Resetting colors to default.\n");   
             // reset colors to default
             settings.fgcolor = DEFAULT_FGCOLOR;
             settings.bgcolor = DEFAULT_BGCOLOR;
             resetColors(prevFgColor, prevBgColor);    
-            savesettings();    
+            Frens::savesettings();    
         } 
        
         v = 0;
@@ -823,7 +821,7 @@ void menu(char *errorMessage, bool isFatal, bool showSplash, const char *allowed
     wiipad_end();
 #endif
 
-    savesettings();
+    Frens::savesettings();
 
     // Don't return from this function call, but reboot in order to get avoid several problems with sound and lockups (WII-pad)
     // After reboot the emulator will and flash start the selected game.
