@@ -23,16 +23,6 @@
 #include "FrensFonts.h"
 #include "FrensHelpers.h"
 
-#define SCREEN_COLS 32
-#define SCREEN_ROWS 29
-
-#define STARTROW 3
-#define ENDROW 24
-#define PAGESIZE (ENDROW - STARTROW + 1)
-
-#define VISIBLEPATHSIZE (SCREEN_COLS - 3)   
-
-
 #define CC(x) (((x >> 1) & 15) | (((x >> 6) & 15) << 4) | (((x >> 11) & 15) << 8))
 const WORD NesMenuPalette[64] = {
     CC(0x39ce), CC(0x1071), CC(0x0015), CC(0x2013), CC(0x440e), CC(0x5402), CC(0x5000), CC(0x3c20),
@@ -47,18 +37,12 @@ int NesMenuPaletteItems  = sizeof(NesMenuPalette) / sizeof(NesMenuPalette[0]);
 
 static char connectedGamePadName[sizeof(io::GamePadState::GamePadName)];
 
-static int fgcolorSplash = DEFAULT_FGCOLOR;
-static int bgcolorSplash = DEFAULT_BGCOLOR;
 
-struct charCell
-{
-    uint8_t fgcolor;
-    uint8_t bgcolor;
-    char charvalue;
-};
+
+
 
 #define SCREENBUFCELLS SCREEN_ROWS *SCREEN_COLS
-static charCell *screenBuffer;
+charCell *screenBuffer;
 
 static WORD *WorkLineRom = nullptr;
 void RomSelect_SetLineBuffer(WORD *p, WORD size)
@@ -267,7 +251,7 @@ void drawline(int scanline, int selectedRow)
     dvi_->setLineBuffer(scanline, b);
 }
 
-static void putText(int x, int y, const char *text, int fgcolor, int bgcolor)
+void putText(int x, int y, const char *text, int fgcolor, int bgcolor)
 {
 
     if (text != nullptr)
@@ -306,7 +290,7 @@ void DrawScreen(int selectedRow)
     }
 }
 
-void ClearScreen(charCell *screenBuffer, int color)
+void ClearScreen(int color)
 {
     for (auto i = 0; i < SCREENBUFCELLS; i++)
     {
@@ -324,7 +308,7 @@ void displayRoms(Frens::RomLister romlister, int startIndex)
     char s[SCREEN_COLS + 1];
     auto y = STARTROW;
     auto entries = romlister.GetEntries();
-    ClearScreen(screenBuffer, settings.bgcolor);
+    ClearScreen(settings.bgcolor);
     strcpy(s, "- Pico-InfoNES+ -");
     putText(SCREEN_COLS / 2 - strlen(s) / 2, 0, s, settings.fgcolor, settings.bgcolor);
     
@@ -373,7 +357,7 @@ void displayRoms(Frens::RomLister romlister, int startIndex)
 
 void DisplayFatalError(char *error)
 {
-    ClearScreen(screenBuffer, settings.bgcolor);
+    ClearScreen(settings.bgcolor);
     putText(0, 0, "Fatal error:", settings.fgcolor, settings.bgcolor);
     putText(1, 3, error, settings.fgcolor, settings.bgcolor);
     while (true)
@@ -386,7 +370,7 @@ void DisplayFatalError(char *error)
 void DisplayEmulatorErrorMessage(char *error)
 {
     DWORD PAD1_Latch;
-    ClearScreen(screenBuffer, settings.bgcolor);
+    ClearScreen(settings.bgcolor);
     putText(0, 0, "Error occured:", settings.fgcolor, settings.bgcolor);
     putText(0, 3, error, settings.fgcolor, settings.bgcolor);
     putText(0, ENDROW, "Press a button to continue.", settings.fgcolor, settings.bgcolor);
@@ -405,50 +389,7 @@ void DisplayEmulatorErrorMessage(char *error)
 void showSplashScreen()
 {
     DWORD PAD1_Latch;
-    char s[SCREEN_COLS + 1];
-    ClearScreen(screenBuffer, bgcolorSplash);
-
-    strcpy(s, "Pico-Info");
-    putText(SCREEN_COLS / 2 - (strlen(s) + 4) / 2, 2, s, fgcolorSplash, bgcolorSplash);
-
-    putText((SCREEN_COLS / 2 - (strlen(s)) / 2) + 7, 2, "N", CRED, bgcolorSplash);
-    putText((SCREEN_COLS / 2 - (strlen(s)) / 2) + 8, 2, "E", CGREEN, bgcolorSplash);
-    putText((SCREEN_COLS / 2 - (strlen(s)) / 2) + 9, 2, "S", CBLUE, bgcolorSplash);
-    putText((SCREEN_COLS / 2 - (strlen(s)) / 2) + 10, 2, "+", fgcolorSplash, bgcolorSplash);
-
-    strcpy(s, "NES emulator for RP2040");
-    putText(SCREEN_COLS / 2 - strlen(s) / 2, 3, s, fgcolorSplash, bgcolorSplash);
-    strcpy(s, "Emulator");
-    putText(SCREEN_COLS / 2 - strlen(s) / 2, 5, s, fgcolorSplash, bgcolorSplash);
-    strcpy(s, "@jay_kumogata");
-    putText(SCREEN_COLS / 2 - strlen(s) / 2, 6, s, CLIGHTBLUE, bgcolorSplash);
-
-    strcpy(s, "Pico Port");
-    putText(SCREEN_COLS / 2 - strlen(s) / 2, 9, s, fgcolorSplash, bgcolorSplash);
-    strcpy(s, "@shuichi_takano");
-    putText(SCREEN_COLS / 2 - strlen(s) / 2, 10, s, CLIGHTBLUE, bgcolorSplash);
-
-    strcpy(s, "Menu System & SD Card Support");
-    putText(SCREEN_COLS / 2 - strlen(s) / 2, 13, s, fgcolorSplash, bgcolorSplash);
-    strcpy(s, "@frenskefrens");
-    putText(SCREEN_COLS / 2 - strlen(s) / 2, 14, s, CLIGHTBLUE, bgcolorSplash);
-
-    strcpy(s, "NES/WII controller support");
-    putText(SCREEN_COLS / 2 - strlen(s) / 2, 17, s, fgcolorSplash, bgcolorSplash);
-
-    strcpy(s, "@PaintYourDragon @adafruit");
-    putText(SCREEN_COLS / 2 - strlen(s) / 2, 18, s, CLIGHTBLUE, bgcolorSplash);
-
-    strcpy(s, "PCB Design");
-    putText(SCREEN_COLS / 2 - strlen(s) / 2, 21, s, fgcolorSplash, bgcolorSplash);
-
-    strcpy(s, "@johnedgarpark");
-    putText(SCREEN_COLS / 2 - strlen(s) / 2, 22, s, CLIGHTBLUE, bgcolorSplash);
-
-    strcpy(s, "https://github.com/");
-    putText(SCREEN_COLS / 2 - strlen(s) / 2, 25, s, CLIGHTBLUE, bgcolorSplash);
-    strcpy(s, "fhoedemakers/pico-infonesPlus");
-    putText(1, 26, s, CLIGHTBLUE, bgcolorSplash);
+    splash();
     int startFrame = -1;
     while (true)
     {
