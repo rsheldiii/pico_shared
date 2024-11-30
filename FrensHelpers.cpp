@@ -5,10 +5,12 @@
 #include "pico/stdlib.h"
 #include <tusb.h>
 #include "settings.h"
+#include "pico/multicore.h"
 #include "ff.h"
 #include <hardware/flash.h>
 #include "nespad.h"
 #include "wiipad.h"
+#include "hardware/watchdog.h"
 
 std::unique_ptr<dvi::DVI> dvi_;
 util::ExclusiveProc exclProc_;
@@ -422,5 +424,48 @@ namespace Frens
 #if WII_PIN_SDA >= 0 and WII_PIN_SCL >= 0
         wiipad_begin();
 #endif
+    }
+    void initDVandAudio()
+    {
+        //
+        dvi_ = std::make_unique<dvi::DVI>(pio0, &DVICONFIG,
+                                          dvi::getTiming640x480p60Hz());
+        //    dvi_->setAudioFreq(48000, 25200, 6144);
+        dvi_->setAudioFreq(44100, 28000, 6272);
+
+        dvi_->allocateAudioBuffer(256);
+        //    dvi_->setExclusiveProc(&exclProc_);
+
+        dvi_->getBlankSettings().top = 4 * 2;
+        dvi_->getBlankSettings().bottom = 4 * 2;
+        // dvi_->setScanLine(true);
+        // 空サンプル詰めとく
+        dvi_->getAudioRingBuffer().advanceWritePointer(255);
+    }
+
+    bool initAll(char *selectedRom, uint32_t CPUFreqKHz)
+    {
+        bool ok = false;
+        initLed();
+        // reset settings to default in case SD card could not be mounted
+        resetsettings();
+        if (initSDCard())
+        {
+            ok = true;
+            loadsettings();
+            // When a game is started from the menu, the menu will reboot the device.
+            // After reboot the emulator will start the selected game.
+            // The watchdog timer is used to detect if the reboot was caused by the menu.
+            // Use watchdog_enable_caused_reboot in stead of watchdog_caused_reboot because
+            // when reset is pressed while in game, the watchdog will also be triggered.
+            if (watchdog_enable_caused_reboot())
+            {
+                flashrom(selectedRom);
+            }
+        }
+        initDVandAudio();
+        multicore_launch_core1(core1_main);
+        initVintageControllers(CPUFreqKHz);
+        return ok;
     }
 }

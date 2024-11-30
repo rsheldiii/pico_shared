@@ -5,7 +5,7 @@
 #include <algorithm>
 #include <memory>
 #include <dvi/dvi.h>
-
+#include "dvi_configs.h"
 enum class ScreenMode
     {
         SCANLINE_8_7,
@@ -47,6 +47,8 @@ namespace Frens
     void __not_in_flash_func(core1_main)();
     void initLed();
     void initVintageControllers(uint32_t CPUFreqKHz);
+    void initDVandAudio();
+    bool initAll(char *selectedRom, uint32_t CPUFreqKHz);
 } // namespace Frens
 
 
