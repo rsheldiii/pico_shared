@@ -37,10 +37,6 @@ int NesMenuPaletteItems  = sizeof(NesMenuPalette) / sizeof(NesMenuPalette[0]);
 
 static char connectedGamePadName[sizeof(io::GamePadState::GamePadName)];
 
-
-
-
-
 #define SCREENBUFCELLS SCREEN_ROWS *SCREEN_COLS
 charCell *screenBuffer;
 
@@ -61,8 +57,6 @@ static constexpr int B = 1 << 1;
 static constexpr int X = 1 << 8;
 static constexpr int Y = 1 << 9;
 
-
-void DrawScreen(int selectedRow);
 
 void resetColors(int prevfgColor, int prevbgColor)
 {
@@ -301,6 +295,7 @@ void ClearScreen(int color)
 }
 
 
+char *menutitle = nullptr;
 
 void displayRoms(Frens::RomLister romlister, int startIndex)
 {
@@ -309,7 +304,7 @@ void displayRoms(Frens::RomLister romlister, int startIndex)
     auto y = STARTROW;
     auto entries = romlister.GetEntries();
     ClearScreen(settings.bgcolor);
-    strcpy(s, "- Pico-InfoNES+ -");
+    snprintf(s, sizeof(s), "- %s -",  menutitle);
     putText(SCREEN_COLS / 2 - strlen(s) / 2, 0, s, settings.fgcolor, settings.bgcolor);
     
     strcpy(s, "Choose a rom to play:");
@@ -451,12 +446,13 @@ static char *selectedRomOrFolder;
 static bool errorInSavingRom = false;
 static char *globalErrorMessage;
 
-void menu(char *errorMessage, bool isFatal, bool showSplash, const char *allowedExtensions)
+void menu(const char *title, char *errorMessage, bool isFatal, bool showSplash, const char *allowedExtensions)
 {
     // int firstVisibleRowINDEX = 0;
     // int selectedRow = STARTROW;
     // char currentDir[FF_MAX_LFN];
     // int horzontalScrollIndex = 0;
+    menutitle = (char *)title;
     int totalFrames = -1;
     if (settings.selectedRow <= 0)
     {
