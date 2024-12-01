@@ -17,6 +17,8 @@
 
 // Pico W devices use a GPIO on the WIFI chip for the LED,
 // so when building for Pico W, CYW43_WL_GPIO_LED_PIN will be defined
+// NOTE: Building for Pico W is not recommended, because after a few reboots,
+// it hard crashes the emulator and makes the board unresponsive.
 #ifdef CYW43_WL_GPIO_LED_PIN
 #include "pico/cyw43_arch.h"
 #endif
@@ -434,6 +436,11 @@ namespace Frens
     }
 
     // Initialize the LED
+    // Note that activationg the LED on the PICO W makes the board unstable and 
+    // completely unresponsive. This is why building for PICO W is not recommended. Use Pico build instead.
+    // LED_GPIO_PIN -1 : No Onboard LED
+    // LED_GPIO_PIN 0  : Onboard LED
+    // LED_GPIO_PIN > 0: Onboard LED on GPIO pin LED_GPIO_PIN. (Feather DVI as a different onboard led pin)
     int initLed()
     {
 #if LED_GPIO_PIN > -1
@@ -487,7 +494,10 @@ namespace Frens
     {
         bool ok = false;
         int rc = initLed();
-        hard_assert(rc == PICO_OK);
+        if (rc != PICO_OK)
+        {
+            printf("Error initializing LED: %d\n", rc);
+        }
         // reset settings to default in case SD card could not be mounted
         resetsettings();
         if (initSDCard())
@@ -508,5 +518,12 @@ namespace Frens
         multicore_launch_core1(core1_main);
         initVintageControllers(CPUFreqKHz);
         return ok;
+    }
+    void resetWifi()
+    {
+#if defined(CYW43_WL_GPIO_LED_PIN)
+    printf("Deinitializing CYW43\n");
+    cyw43_arch_deinit();
+#endif
     }
 }

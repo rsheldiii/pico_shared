@@ -50,6 +50,7 @@ namespace Frens
     void initDVandAudio();
     bool initAll(char *selectedRom, uint32_t CPUFreqKHz);
     void blinkLed(bool on);
+    void resetWifi();
 } // namespace Frens
 
 

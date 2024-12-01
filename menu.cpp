@@ -759,6 +759,7 @@ void menu(const char *title, char *errorMessage, bool isFatal, bool showSplash, 
 
     // Don't return from this function call, but reboot in order to get avoid several problems with sound and lockups (WII-pad)
     // After reboot the emulator will and flash start the selected game.
+    Frens::resetWifi();
     printf("Rebooting...\n");
     watchdog_enable(100, 1);
     while (1)
