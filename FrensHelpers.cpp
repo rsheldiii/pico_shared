@@ -1,16 +1,25 @@
-#include "FrensHelpers.h"
+
 #include <stdio.h>
-#include <dvi/dvi.h>
-#include "util/exclusive_proc.h"
+#include <cstring>
+#include "pico.h"
 #include "pico/stdlib.h"
-#include <tusb.h>
-#include "settings.h"
 #include "pico/multicore.h"
+#include "hardware/flash.h"
+#include "hardware/watchdog.h"
+#include "util/exclusive_proc.h"
+#include "tusb.h"
+#include "dvi/dvi.h"
 #include "ff.h"
-#include <hardware/flash.h>
 #include "nespad.h"
 #include "wiipad.h"
-#include "hardware/watchdog.h"
+#include "settings.h"
+#include "FrensHelpers.h"
+
+// Pico W devices use a GPIO on the WIFI chip for the LED,
+// so when building for Pico W, CYW43_WL_GPIO_LED_PIN will be defined
+#ifdef CYW43_WL_GPIO_LED_PIN
+#include "pico/cyw43_arch.h"
+#endif
 
 std::unique_ptr<dvi::DVI> dvi_;
 util::ExclusiveProc exclProc_;
@@ -303,13 +312,11 @@ namespace Frens
                 printf("Start not pressed, flashing rom.\n");
                 size_t bufsize = 0x1000;                // Write 4k at a time, larger sizes will increases the risk of making XInput unresponsive. (Still happens sometimes)
                 BYTE *buffer = (BYTE *)malloc(bufsize); // (BYTE *)InfoNes_GetPPURAM(&bufsize);
-                auto ofs = NES_FILE_ADDR - XIP_BASE;
+                auto ofs = ROM_FILE_ADDR - XIP_BASE;
                 printf("Writing rom %s to flash %x\n", selectedRom, ofs);
                 UINT totalBytes = 0;
                 fr = f_open(&fil, selectedRom, FA_READ);
-#if LED_GPIO_PIN != -1
                 bool onOff = true;
-#endif
                 UINT bytesRead;
                 if (fr == FR_OK)
                 {
@@ -322,10 +329,8 @@ namespace Frens
                             {
                                 break;
                             }
-#if LED_GPIO_PIN != -1
-                            gpio_put(LED_GPIO_PIN, onOff);
+                            blinkLed(onOff);
                             onOff = !onOff;
-#endif
                             // Disable interupts, erase, flash and enable interrupts
                             uint32_t ints = save_and_disable_interrupts();
                             flash_range_erase(ofs, bufsize);
@@ -402,15 +407,41 @@ namespace Frens
             exclProc_.processOrWaitIfExist();
         }
     }
+    void blinkLed(bool on)
+    {
+#if LED_GPIO_PIN > -1
+#if LED_GPIO_PIN > 0
+        gpio_put(LED_GPIO_PIN, on);
+#elif defined(PICO_DEFAULT_LED_PIN)
+        gpio_put(PICO_DEFAULT_LED_PIN, on);
+#elif defined(CYW43_WL_GPIO_LED_PIN)
+        cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, on);
+#else
+        // No LED pin defined
+        (void)on; // Suppress unused parameter warning
+#endif
+#else
+        (void)on; // Suppress unused parameter warning
+#endif
+    }
 
     // Initialize the LED
-    void initLed()
+    int initLed()
     {
-#if LED_GPIO_PIN != -1
-        gpio_init(LED_GPIO_PIN);
-        gpio_set_dir(LED_GPIO_PIN, GPIO_OUT);
-        gpio_put(LED_GPIO_PIN, 1);
+#if LED_GPIO_PIN > -1
+#if LED_GPIO_PIN > 0
+        uint ledpin = LED_GPIO_PIN;
+#elif defined(PICO_DEFAULT_LED_PIN)
+        uint ledpin = PICO_DEFAULT_LED_PIN;
+#elif defined(CYW43_WL_GPIO_LED_PIN)
+        // For Pico W devices we need to initialize the driver
+        return cyw43_arch_init();
 #endif
+        gpio_init(ledpin);
+        gpio_set_dir(ledpin, GPIO_OUT);
+        gpio_put(ledpin, 1);
+#endif
+        return PICO_OK;
     }
 
     void initVintageControllers(uint32_t CPUFreqKHz)
@@ -446,7 +477,8 @@ namespace Frens
     bool initAll(char *selectedRom, uint32_t CPUFreqKHz)
     {
         bool ok = false;
-        initLed();
+        int rc = initLed();
+        hard_assert(rc == PICO_OK);
         // reset settings to default in case SD card could not be mounted
         resetsettings();
         if (initSDCard())

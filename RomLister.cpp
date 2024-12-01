@@ -1,9 +1,8 @@
 #include <stdio.h>
-#include <pico/stdlib.h>
 #include <string.h>
+#include "pico.h"
 #include "RomLister.h"
 #include "FrensHelpers.h"
-
 #include "ff.h"
 
 // class to listing directories and .NES files on sd card

@@ -1,10 +1,10 @@
 #ifndef FRENSHELPERS
 #define FRENSHELPERS
-#include <string.h>
 #include <string>
 #include <algorithm>
 #include <memory>
-#include <dvi/dvi.h>
+
+#include "dvi/dvi.h"
 #include "dvi_configs.h"
 enum class ScreenMode
     {
@@ -26,7 +26,7 @@ enum class ScreenMode
 #define ERRORMESSAGESIZE 40
 #define GAMESAVEDIR "/SAVES"
 #define ROMINFOFILE "/currentloadedrom.txt"
-#define NES_FILE_ADDR 0x10080000
+#define ROM_FILE_ADDR 0x10080000
 
 extern char ErrorMessage[];
 extern std::unique_ptr<dvi::DVI> dvi_;
@@ -45,10 +45,11 @@ namespace Frens
     bool screenMode(int incr);
     void flashrom(char *selectedRom);
     void __not_in_flash_func(core1_main)();
-    void initLed();
+    int initLed();
     void initVintageControllers(uint32_t CPUFreqKHz);
     void initDVandAudio();
     bool initAll(char *selectedRom, uint32_t CPUFreqKHz);
+    void blinkLed(bool on);
 } // namespace Frens
 
 

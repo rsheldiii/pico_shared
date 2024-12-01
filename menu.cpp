@@ -1,14 +1,19 @@
 #include <stdio.h>
 #include <string.h>
-
-
-#include <pico.h>
+#include <memory>
+#include "pico.h"
 #include "pico/stdlib.h"
 #include "hardware/flash.h"
-#include "InfoNES_System.h"
-#include <util/exclusive_proc.h>
-#include <gamepad.h>
 #include "hardware/watchdog.h"
+#include "hardware/divider.h"
+#include "tusb.h"
+
+#include "dvi/dvi.h"
+#include "util/exclusive_proc.h"
+#include "FrensFonts.h"
+#include "FrensHelpers.h"
+#include "InfoNES_System.h"
+#include "gamepad.h"
 #include "RomLister.h"
 #include "menu.h"
 #include "nespad.h"
@@ -16,12 +21,6 @@
 
 #include "font_8x8.h"
 #include "settings.h"
-#include <memory>
-#include <dvi/dvi.h>
-#include <hardware/divider.h>
-#include <tusb.h>
-#include "FrensFonts.h"
-#include "FrensHelpers.h"
 
 #define CC(x) (((x >> 1) & 15) | (((x >> 6) & 15) << 4) | (((x >> 11) & 15) << 8))
 const WORD NesMenuPalette[64] = {
@@ -80,9 +79,7 @@ int Menu_LoadFrame()
 #endif
     auto count = dvi_->getFrameCounter();
     auto onOff = hw_divider_s32_quotient_inlined(count, 60) & 1;
-#if LED_GPIO_PIN != -1
-    gpio_put(LED_GPIO_PIN, onOff);
-#endif
+    Frens::blinkLed(onOff);
 #if NES_PIN_CLK != -1
     nespad_read_finish(); // Sets global nespad_state var
 #endif
