@@ -762,7 +762,9 @@ void menu(const char *title, char *errorMessage, bool isFatal, bool showSplash, 
     Frens::resetWifi();
     printf("Rebooting...\n");
     watchdog_enable(100, 1);
-    while (1)
+    while (1) {
+        printf("Waiting for reboot...\n");
+    }
         ;
     // Never return
 }
