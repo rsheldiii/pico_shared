@@ -320,6 +320,8 @@ namespace Frens
                 UINT bytesRead;
                 if (fr == FR_OK)
                 {
+                    UINT filesize = f_size(&fil);
+                    printf("Filesize: %d bytes (%dKB)\n", filesize, filesize / 1024);
                     for (;;)
                     {
                         fr = f_read(&fil, buffer, bufsize, &bytesRead);
@@ -351,6 +353,12 @@ namespace Frens
                     }
                     f_close(&fil);
                     printf("Wrote %d bytes to flash\n", totalBytes);
+                    if ( totalBytes != filesize)
+                    {
+                        snprintf(ErrorMessage, 40,"Size mismatch: %d != %d\n", totalBytes, filesize);
+                        printf("%s\n", ErrorMessage);
+                        selectedRom[0] = 0;
+                    }   
                 }
                 else
                 {
