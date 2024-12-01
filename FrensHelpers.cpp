@@ -438,16 +438,17 @@ namespace Frens
     {
 #if LED_GPIO_PIN > -1
 #if LED_GPIO_PIN > 0
-        uint ledpin = LED_GPIO_PIN;
-#elif defined(PICO_DEFAULT_LED_PIN)
-        uint ledpin = PICO_DEFAULT_LED_PIN;
+        gpio_init(LED_GPIO_PIN);
+        gpio_set_dir(LED_GPIO_PIN, GPIO_OUT);
+        gpio_put(LED_GPIO_PIN, 1);
+#elif defined(PICO_DEFAULT_LED_PIN)    
+        gpio_init(PICO_DEFAULT_LED_PIN);
+        gpio_set_dir(PICO_DEFAULT_LED_PIN, GPIO_OUT);
+        gpio_put(PICO_DEFAULT_LED_PIN, 1);
 #elif defined(CYW43_WL_GPIO_LED_PIN)
         // For Pico W devices we need to initialize the driver
         return cyw43_arch_init();
-#endif
-        gpio_init(ledpin);
-        gpio_set_dir(ledpin, GPIO_OUT);
-        gpio_put(ledpin, 1);
+#endif     
 #endif
         return PICO_OK;
     }
