@@ -19,7 +19,8 @@ function usage() {
 	echo "  -2: build for Pico 2 board (RP2350)"
 	echo "  -r: build for Pico 2 board (RP2350) with riscv core"
 	echo "  -w: build for Pico_w or Pico2_w"
-	echo "  -t <path to toolchain>: only needed for riscv, specify the path to the riscv toolchain bin folder"
+	echo "  -t <path to riscv toolchain>: only needed for riscv, specify the path to the riscv toolchain bin folder"
+	echo "     Default is \$PICO_SDK_PATH/toolchain/RISCV_RPI_2_0_0_2/bin"
 	echo "  -c <hwconfig>: specify the hardware configuration"
 	echo "     1: Pimoroni Pico DV Demo Base (Default)"
 	echo "     2: Breadboard with Adafruit AdaFruit DVI Breakout Board and AdaFruit MicroSD card breakout board"
@@ -118,11 +119,11 @@ if [[ $picoriscIsSet -eq 1 && -z "$TOOLCHAIN_PATH" ]] ; then
 fi
 
 if [[ $picoriscIsSet -eq 0 && ! -z "$TOOLCHAIN_PATH" ]] ; then
-	# use default path
+	# -t is only valid  when using the riscv toolchain
 	echo "Option -t is only valid with -r"
 	exit 1
 fi
-# When PICOTOOLCHAIN_PATH is not empty it must be an existing directory
+# When PICOTOOLCHAIN_PATH is not empty it must containt the riscv toolchan
 if [ ! -z "$TOOLCHAIN_PATH" ] ; then
 	if [ ! -x "$TOOLCHAIN_PATH/riscv32-unknown-elf-gcc" ] ; then
 		echo "riscv toolchain not found in $TOOLCHAIN_PATH"
@@ -135,13 +136,6 @@ if [[ $picoarmIsSet -eq 1 && $picoriscIsSet -eq 1 ]] ; then
 	echo "Options -2 and -r are mutually exclusive"
 	exit 1
 fi	
-# TOOLCHAIN_PATH is set, check if it is a valid path
-if [ ! -z "$TOOLCHAIN_PATH" ] ; then
-	if [ ! -d "$TOOLCHAIN_PATH" ] ; then
-		echo "Toolchain path $TOOLCHAIN_PATH not found"
-		exit 1
-	fi
-fi
 
 # if PICO_PLATFORM starts with rp2350, check if the SDK version is 2 or higher
 if [[ $SDKVERSION -lt 2 && $PICO_PLATFORM == rp2350* ]] ; then
