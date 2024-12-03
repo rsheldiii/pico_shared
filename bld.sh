@@ -13,7 +13,7 @@ APP=${PROJECT}
 function usage() {
 	echo "Build script for the ${PROJECT} project"
 	echo  ""
-	echo "Usage: $0 [-d] [-2 | -r] [-t path to toolchain] [-c <hwconfig>]"
+	echo "Usage: $0 [-d] [-2 | -r] [-w] [-t path to toolchain] [-c <hwconfig>]"
 	echo "Options:"
 	echo "  -d: build in DEBUG configuration"
 	echo "  -2: build for Pico 2 board (RP2350)"
