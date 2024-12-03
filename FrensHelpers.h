@@ -31,6 +31,9 @@ enum class ScreenMode
 extern char ErrorMessage[];
 extern std::unique_ptr<dvi::DVI> dvi_;
 extern bool scaleMode8_7_;
+
+extern char __flash_binary_start;  // defined in linker script
+extern char __flash_binary_end; 
 namespace Frens
 {
     bool endsWith(std::string const &str, std::string const &suffix);

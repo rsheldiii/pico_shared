@@ -498,6 +498,8 @@ namespace Frens
         {
             printf("Error initializing LED: %d\n", rc);
         }
+        printf("Flash binary start: %x\n", &__flash_binary_start);
+        printf("Flash binary end: %x\n", &__flash_binary_end);
         // reset settings to default in case SD card could not be mounted
         resetsettings();
         if (initSDCard())
