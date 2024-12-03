@@ -26,7 +26,7 @@ enum class ScreenMode
 #define ERRORMESSAGESIZE 40
 #define GAMESAVEDIR "/SAVES"
 #define ROMINFOFILE "/currentloadedrom.txt"
-#define ROM_FILE_ADDR 0x10090000
+extern uintptr_t ROM_FILE_ADDR ; //0x10090000
 
 extern char ErrorMessage[];
 extern std::unique_ptr<dvi::DVI> dvi_;

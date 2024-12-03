@@ -27,6 +27,7 @@ std::unique_ptr<dvi::DVI> dvi_;
 util::ExclusiveProc exclProc_;
 char ErrorMessage[ERRORMESSAGESIZE];
 bool scaleMode8_7_ = true;
+uintptr_t ROM_FILE_ADDR = 0;
 namespace Frens
 {
     static FATFS fs;
@@ -498,8 +499,19 @@ namespace Frens
         {
             printf("Error initializing LED: %d\n", rc);
         }
+        // Calculate the address in flash where roms will be stored
         printf("Flash binary start: %x\n", &__flash_binary_start);
         printf("Flash binary end: %x\n", &__flash_binary_end);
+        uintptr_t address = (uintptr_t)&__flash_binary_end;
+        // Must be between __flash_binary_end and 0x10200000
+        // Example: when __flash_binary_end is 0x10083358, the address will be 0x10090000
+        uintptr_t nn = (address & 0x00FF0000) >> 16;
+        // Increment 'nn' and wrap around if needed
+        unsigned int new_nn = (nn + 1) % 256; // Ensure it wraps back to 0 after 0xFF
+        // Construct the new address
+        uintptr_t new_address = (address & 0xFF000000) | (new_nn << 16);
+        ROM_FILE_ADDR = new_address;
+        printf("ROM_FILE_ADDR: %x\n", ROM_FILE_ADDR);
         // reset settings to default in case SD card could not be mounted
         resetsettings();
         if (initSDCard())
