@@ -18,6 +18,7 @@ function usage() {
 	echo "  -d: build in DEBUG configuration"
 	echo "  -2: build for Pico 2 board (RP2350)"
 	echo "  -r: build for Pico 2 board (RP2350) with riscv core"
+	echo "  -w: build for Pico_w or Pico2_w"
 	echo "  -t <path to toolchain>: only needed for riscv, specify the path to the riscv toolchain bin folder"
 	echo "  -c <hwconfig>: specify the hardware configuration"
 	echo "     1: Pimoroni Pico DV Demo Base (Default)"
@@ -25,7 +26,7 @@ function usage() {
 	echo "        Custom pcb"
 	echo "     3: Adafruit Feather RP2040 DVI"
 	echo "     4: Waveshare RP2040-PiZero"
-	echo "     hwconfig 3 and 4 are RP2040-based boards, so they cannot be built for Pico 2"
+	echo "     hwconfig 3 and 4 are RP2040-based boards with no wifi, so -2 -r and -w are not allowed"
 	echo "  -h: display this help"
 	echo ""
 	echo "To install the RISC-V toolchain:"
@@ -46,26 +47,27 @@ function usage() {
 	echo -e "\t./bld.sh -c <hwconfig> -r -t \$PICO_SDK_PATH/toolchain/RISCV_RPI_2_0_0_2/bin"
 	echo ""
 } 
-
+PICO_BOARD=pico
 PICO_PLATFORM=rp2040
 BUILD=RELEASE
 HWCONFIG=1
 UF2="${APP}PimoroniDV.uf2"
 # check if var PICO_SDK is set and points to the SDK
 if [ -z "$PICO_SDK_PATH" ] ; then
-	echo "PICO_SDK not set. Please set the PICO_SDK environment variable to the location of the Pico SDK"
+	echo "PICO_SDK_PATH not set. Please set the PICO_SDK_PATH environment variable to the location of the Pico SDK"
 	exit 1
 fi
 # check if the SDK is present
 if [ ! -d "$PICO_SDK_PATH" ] ; then
-	echo "PICO_SDK not found. Please set the PICO_SDK environment variable to the location of the Pico SDK"
+	echo "Pico SDK not found. Please set the PICO_SDK_PATH environment variable to the location of the Pico SDK"
 	exit 1
 fi
 SDKVERSION=`cat $PICO_SDK_PATH/pico_sdk_version.cmake | grep "set(PICO_SDK_VERSION_MAJOR" | cut -f2  -d" " | cut -f1 -d\)`
 TOOLCHAIN_PATH=
 picoarmIsSet=0
 picoRiscIsSet=0
-while getopts "hd2rc:t:" opt; do
+USEPICOW=0
+while getopts "whd2rc:t:" opt; do
   case $opt in
     d)
       BUILD=DEBUG
@@ -74,10 +76,12 @@ while getopts "hd2rc:t:" opt; do
       HWCONFIG=$OPTARG
       ;;
 	2) 
+	  PICO_BOARD=pico2
 	  PICO_PLATFORM=rp2350-arm-s
 	  picoarmIsSet=1
 	  ;;
 	r)
+	  PICO_BOARD=pico2
 	  picoriscIsSet=1
 	  PICO_PLATFORM=rp2350-riscv
 	  ;;	
@@ -87,7 +91,8 @@ while getopts "hd2rc:t:" opt; do
 	  usage
 	  exit 0
 	  ;;
-
+	w) USEPICOW=1 
+	  ;;
     \?)
       #echo "Invalid option: -$OPTARG" >&2
 	  usage
@@ -104,10 +109,30 @@ while getopts "hd2rc:t:" opt; do
 	  ;;
   esac
 done
+
+
+# check toolchain if -r is set
+if [[ $picoriscIsSet -eq 1 && -z "$TOOLCHAIN_PATH" ]] ; then
+	# use default path
+	TOOLCHAIN_PATH=$PICO_SDK_PATH/toolchain/RISCV_RPI_2_0_0_2/bin
+fi
+
+if [[ $picoriscIsSet -eq 0 && ! -z "$TOOLCHAIN_PATH" ]] ; then
+	# use default path
+	echo "Option -t is only valid with -r"
+	exit 1
+fi
+# When PICOTOOLCHAIN_PATH is not empty it must be an existing directory
+if [ ! -z "$TOOLCHAIN_PATH" ] ; then
+	if [ ! -x "$TOOLCHAIN_PATH/riscv32-unknown-elf-gcc" ] ; then
+		echo "riscv toolchain not found in $TOOLCHAIN_PATH"
+		exit 1
+	fi
+fi
+
 # -2 and -r are mutually exclusive
 if [[ $picoarmIsSet -eq 1 && $picoriscIsSet -eq 1 ]] ; then
 	echo "Options -2 and -r are mutually exclusive"
-	usage
 	exit 1
 fi	
 # TOOLCHAIN_PATH is set, check if it is a valid path
@@ -117,6 +142,26 @@ if [ ! -z "$TOOLCHAIN_PATH" ] ; then
 		exit 1
 	fi
 fi
+
+# if PICO_PLATFORM starts with rp2350, check if the SDK version is 2 or higher
+if [[ $SDKVERSION -lt 2 && $PICO_PLATFORM == rp2350* ]] ; then
+		echo "Pico SDK version $SDKVERSION does not support RP2350 (pico2). Please update the SDK to version 2 or higher"
+		echo ""
+		exit 1
+fi
+# pico2 board not compatible with HWCONFIG > 2
+if [[ $HWCONFIG -gt 2 && $PICO_PLATFORM == rp2350* ]] ; then
+	echo "HW configuration $HWCONFIG is a RP2040 based board, not compatible with Pico 2"
+	exit 1
+fi
+# -w is not compatible with HWCONFIG 3 and 4
+if [[ $USEPICOW -eq 1 && $HWCONFIG -gt 2 ]] ; then
+	echo "Option -w is not compatible with HWCONFIG 3 and 4, thos boards have no Wifi module"
+	exit 1
+fi
+
+
+
 case $HWCONFIG in
 	1)
 		UF2="${APP}PimoroniDV.uf2"
@@ -131,35 +176,28 @@ case $HWCONFIG in
 		UF2="${APP}WsRP2040PiZero.uf2"
 		;;
 	*)
-		echo "Invalid value: $HWCONFIG specified for option -c"
-		usage
+		echo "Invalid value: $HWCONFIG specified for option -c, must be 1, 2, 3 or 4"
 		exit 1
 		;;
 esac
 
-if [ "$PICO_PLATFORM" = "rp2350-arm-s" ] ; then
-	UF2="pico2_$UF2"
-fi	
+# add _w to PICO_BOARD if -w is set
+if [ $USEPICOW -eq 1 ] ; then
+	PICO_BOARD="${PICO_BOARD}_w"
+fi
+# if [ "$PICO_PLATFORM" = "rp2350-arm-s" ] ; then
+# 	UF2="pico2_$UF2"
+# fi	
 if [ "$PICO_PLATFORM" = "rp2350-riscv" ] ; then
-	UF2="pico2_riscv_$UF2"
-fi	
+	UF2="${PICO_BOARD}_riscv_$UF2"
+else
+	UF2="${PICO_BOARD}_$UF2"
+fi
 echo "Building $PROJECT"
 echo "Using Pico SDK version: $SDKVERSION"
-echo "Building for $PICO_BOARD with $BUILD configuration and HWCONFIG=$HWCONFIG"
-echo "Toolchain path: $TOOLCHAIN_PATH"
+echo "Building for $PICO_BOARD, platform $PICO_PLATFORM with $BUILD configuration and HWCONFIG=$HWCONFIG"
+[ ! -z "$TOOLCHAIN_PATH" ]  && echo "Toolchain path: $TOOLCHAIN_PATH"
 echo "UF2 file: $UF2"
-
-# if PICO_PLATFORM starts with rp2350, check if the SDK version is 2 or higher
-if [[ $SDKVERSION -lt 2 && $PICO_PLATFORM == rp2350* ]] ; then
-		echo "Pico SDK version $SDKVERSION does not support RP2350 (pico2). Please update the SDK to version 2 or higher"
-		echo ""
-		exit 1
-fi
-# pico2 board not compatible with HWCONFIG > 2
-if [[ $HWCONFIG -gt 2 && $PICO_PLATFORM == rp2350* ]] ; then
-	echo "HW configuration $HWCONFIG is a RP2040 based board, not compatible with Pico 2"
-	exit 1
-fi
 
 [ -d releases ] || mkdir releases || exit 1
 if [ -d build ] ; then
@@ -168,14 +206,15 @@ fi
 mkdir build || exit 1
 cd build || exit 1
 if [ -z "$TOOLCHAIN_PATH" ] ; then
-	cmake -DCMAKE_BUILD_TYPE=$BUILD -DHW_CONFIG=$HWCONFIG -DPICO_PLATFORM=$PICO_PLATFORM ..
+	cmake -DCMAKE_BUILD_TYPE=$BUILD -DPICO_BOARD=$PICO_BOARD -DHW_CONFIG=$HWCONFIG -DPICO_PLATFORM=$PICO_PLATFORM ..
 else
-	cmake -DCMAKE_BUILD_TYPE=$BUILD -DHW_CONFIG=$HWCONFIG -DPICO_PLATFORM=$PICO_PLATFORM -DPICO_TOOLCHAIN_PATH=$TOOLCHAIN_PATH ..
+	cmake -DCMAKE_BUILD_TYPE=$BUILD -DPICO_BOARD=$PICO_BOARD -DHW_CONFIG=$HWCONFIG -DPICO_PLATFORM=$PICO_PLATFORM -DPICO_TOOLCHAIN_PATH=$TOOLCHAIN_PATH ..
 fi
 make -j 4
 cd ..
 echo ""
 if [ -f build/${APP}.uf2 ] ; then
 	cp build/${APP}.uf2 releases/${UF2} || exit 1
+	picotool info releases/${UF2}
 fi
 
