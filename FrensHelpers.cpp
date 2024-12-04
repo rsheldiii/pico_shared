@@ -505,9 +505,10 @@ namespace Frens
         printf("Flash byte size: %d\n", PICO_FLASH_SIZE_BYTES);
         uint8_t *flash_end = (uint8_t*)&__flash_binary_start + PICO_FLASH_SIZE_BYTES -1;
         printf("Flash end: %x\n", flash_end);
-        // round address up to 4k boundary
-        ROM_FILE_ADDR = (reinterpret_cast<uintptr_t>((&__flash_binary_end) + 0xFFF) & ~0xFFF);
-        int maxromsize = (int) (flash_end - ROM_FILE_ADDR);
+        // round ROM_FILE_ADDRESS address up to 4k boundary of flash_binary_end
+        ROM_FILE_ADDR = ((uintptr_t)&__flash_binary_end + 0xFFF) & ~0xFFF;
+        // calculate max rom size
+        int maxromsize = flash_end - (uint8_t *)ROM_FILE_ADDR;
         printf("ROM_FILE_ADDR: %x\n", ROM_FILE_ADDR);
         printf("Max ROM size: %d bytes\n", maxromsize);
         
