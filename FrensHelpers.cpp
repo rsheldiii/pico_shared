@@ -515,17 +515,17 @@ namespace Frens
             printf("Error initializing LED: %d\n", rc);
         }
         // Calculate the address in flash where roms will be stored
-        printf("Flash binary start: %x\n", &__flash_binary_start);
-        printf("Flash binary end: %x\n", &__flash_binary_end);
-        printf("Flash byte size: %d\n", PICO_FLASH_SIZE_BYTES);
+        printf("Flash binary start: %08x\n", &__flash_binary_start);
+        printf("Flash binary end  : %08x\n", &__flash_binary_end);
+        printf("Flash byte size   : %08d\n", PICO_FLASH_SIZE_BYTES);
         uint8_t *flash_end = (uint8_t *)&__flash_binary_start + PICO_FLASH_SIZE_BYTES - 1;
-        printf("Flash end: %x\n", flash_end);
+        printf("Flash end         : %08x\n", flash_end);
         // round ROM_FILE_ADDRESS address up to 4k boundary of flash_binary_end
         ROM_FILE_ADDR = ((uintptr_t)&__flash_binary_end + 0xFFF) & ~0xFFF;
         // calculate max rom size
         maxRomSize = flash_end - (uint8_t *)ROM_FILE_ADDR;
-        printf("ROM_FILE_ADDR: %x\n", ROM_FILE_ADDR);
-        printf("Max ROM size: %d bytes\n", maxRomSize);
+        printf("ROM_FILE_ADDR     : %08x\n", ROM_FILE_ADDR);
+        printf("Max ROM size      : %08d bytes\n", maxRomSize);
 
         // reset settings to default in case SD card could not be mounted
         resetsettings();
