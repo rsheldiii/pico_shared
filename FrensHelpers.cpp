@@ -28,6 +28,7 @@ util::ExclusiveProc exclProc_;
 char ErrorMessage[ERRORMESSAGESIZE];
 bool scaleMode8_7_ = true;
 uintptr_t ROM_FILE_ADDR = 0;
+int maxRomSize = 0;
 namespace Frens
 {
     static FATFS fs;
@@ -325,43 +326,57 @@ namespace Frens
                 {
                     UINT filesize = f_size(&fil);
                     printf("Filesize: %d bytes (%dKB)\n", filesize, filesize / 1024);
-                    for (;;)
+                    if (filesize < maxRomSize)
                     {
-                        fr = f_read(&fil, buffer, bufsize, &bytesRead);
-                        if (fr == FR_OK)
+                        bool readError = false;
+                        for (;;)
                         {
-                            if (bytesRead == 0)
+                            fr = f_read(&fil, buffer, bufsize, &bytesRead);
+                            if (fr == FR_OK)
                             {
+                                if (bytesRead == 0)
+                                {
+                                    break;
+                                }
+                                blinkLed(onOff);
+                                onOff = !onOff;
+                                // Disable interupts, erase, flash and enable interrupts
+                                uint32_t ints = save_and_disable_interrupts();
+                                flash_range_erase(ofs, bufsize);
+                                flash_range_program(ofs, buffer, bufsize);
+                                restore_interrupts(ints);
+                                ofs += bufsize;
+                                totalBytes += bytesRead;
+                                // keep the usb stack running
+                                tuh_task();
+                            }
+                            else
+                            {
+                                readError = true;
+                                snprintf(ErrorMessage, 40, "Error reading rom: %d", fr);
+                                printf("Error reading rom: %d: %d/%d bytes read\n", fr, totalBytes, filesize);
+                                selectedRom[0] = 0;
                                 break;
                             }
-                            blinkLed(onOff);
-                            onOff = !onOff;
-                            // Disable interupts, erase, flash and enable interrupts
-                            uint32_t ints = save_and_disable_interrupts();
-                            flash_range_erase(ofs, bufsize);
-                            flash_range_program(ofs, buffer, bufsize);
-                            restore_interrupts(ints);
-                            ofs += bufsize;
-                            totalBytes += bytesRead;
-                            // keep the usb stack running
-                            tuh_task();
                         }
-                        else
+                        if (!readError)
                         {
-                            snprintf(ErrorMessage, 40, "Error reading rom: %d", fr);
-                            printf("Error reading rom: %d\n", fr);
-                            selectedRom[0] = 0;
-                            break;
+                            printf("Wrote %d bytes to flash\n", totalBytes);
+                            if (totalBytes != filesize)
+                            {
+                                snprintf(ErrorMessage, 40, "Size mismatch: %d != %d\n", totalBytes, filesize);
+                                printf("%s\n", ErrorMessage);
+                                selectedRom[0] = 0;
+                            }
                         }
                     }
-                    f_close(&fil);
-                    printf("Wrote %d bytes to flash\n", totalBytes);
-                    if ( totalBytes != filesize)
+                    else
                     {
-                        snprintf(ErrorMessage, 40,"Size mismatch: %d != %d\n", totalBytes, filesize);
+                        snprintf(ErrorMessage, 40, "ROM too large: %d > %d\n", filesize, maxRomSize);
                         printf("%s\n", ErrorMessage);
                         selectedRom[0] = 0;
-                    }   
+                    }
+                    f_close(&fil);
                 }
                 else
                 {
@@ -437,7 +452,7 @@ namespace Frens
     }
 
     // Initialize the LED
-    // Note that activationg the LED on the PICO W makes the board unstable and 
+    // Note that activationg the LED on the PICO W makes the board unstable and
     // completely unresponsive. This is why building for PICO W is not recommended. Use Pico build instead.
     // LED_GPIO_PIN -1 : No Onboard LED
     // LED_GPIO_PIN 0  : Onboard LED
@@ -449,14 +464,14 @@ namespace Frens
         gpio_init(LED_GPIO_PIN);
         gpio_set_dir(LED_GPIO_PIN, GPIO_OUT);
         gpio_put(LED_GPIO_PIN, 1);
-#elif defined(PICO_DEFAULT_LED_PIN)    
+#elif defined(PICO_DEFAULT_LED_PIN)
         gpio_init(PICO_DEFAULT_LED_PIN);
         gpio_set_dir(PICO_DEFAULT_LED_PIN, GPIO_OUT);
         gpio_put(PICO_DEFAULT_LED_PIN, 1);
 #elif defined(CYW43_WL_GPIO_LED_PIN)
         // For Pico W devices we need to initialize the driver
         return cyw43_arch_init();
-#endif     
+#endif
 #endif
         return PICO_OK;
     }
@@ -503,15 +518,15 @@ namespace Frens
         printf("Flash binary start: %x\n", &__flash_binary_start);
         printf("Flash binary end: %x\n", &__flash_binary_end);
         printf("Flash byte size: %d\n", PICO_FLASH_SIZE_BYTES);
-        uint8_t *flash_end = (uint8_t*)&__flash_binary_start + PICO_FLASH_SIZE_BYTES -1;
+        uint8_t *flash_end = (uint8_t *)&__flash_binary_start + PICO_FLASH_SIZE_BYTES - 1;
         printf("Flash end: %x\n", flash_end);
         // round ROM_FILE_ADDRESS address up to 4k boundary of flash_binary_end
         ROM_FILE_ADDR = ((uintptr_t)&__flash_binary_end + 0xFFF) & ~0xFFF;
         // calculate max rom size
-        int maxromsize = flash_end - (uint8_t *)ROM_FILE_ADDR;
+        maxRomSize = flash_end - (uint8_t *)ROM_FILE_ADDR;
         printf("ROM_FILE_ADDR: %x\n", ROM_FILE_ADDR);
-        printf("Max ROM size: %d bytes\n", maxromsize);
-        
+        printf("Max ROM size: %d bytes\n", maxRomSize);
+
         // reset settings to default in case SD card could not be mounted
         resetsettings();
         if (initSDCard())
@@ -536,8 +551,8 @@ namespace Frens
     void resetWifi()
     {
 #if defined(CYW43_WL_GPIO_LED_PIN)
-    printf("Deinitializing CYW43\n");
-    cyw43_arch_deinit();
+        printf("Deinitializing CYW43\n");
+        cyw43_arch_deinit();
 #endif
     }
 }
