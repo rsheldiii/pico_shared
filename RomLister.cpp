@@ -5,7 +5,7 @@
 #include "FrensHelpers.h"
 #include "ff.h"
 
-// class to listing directories and .NES files on sd card
+// class to listing directories and files for a given extension on sd card
 namespace Frens
 {
 	// Buffer must have sufficient bytes to contain directory contents
