@@ -50,8 +50,8 @@ namespace Frens
     void __not_in_flash_func(core1_main)();
     int initLed();
     void initVintageControllers(uint32_t CPUFreqKHz);
-    void initDVandAudio();
-    bool initAll(char *selectedRom, uint32_t CPUFreqKHz);
+    void initDVandAudio(int marginTop, int marginBottom);
+    bool initAll(char *selectedRom, uint32_t CPUFreqKHz, int marginTop, int marginBottom);
     void blinkLed(bool on);
     void resetWifi();
 } // namespace Frens

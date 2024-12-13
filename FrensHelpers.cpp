@@ -487,7 +487,7 @@ namespace Frens
         wiipad_begin();
 #endif
     }
-    void initDVandAudio()
+    void initDVandAudio(int marginTop, int marginBottom)
     {
         //
         dvi_ = std::make_unique<dvi::DVI>(pio0, &DVICONFIG,
@@ -498,14 +498,14 @@ namespace Frens
         dvi_->allocateAudioBuffer(256);
         //    dvi_->setExclusiveProc(&exclProc_);
 
-        dvi_->getBlankSettings().top = 4 * 2;
-        dvi_->getBlankSettings().bottom = 4 * 2;
+        dvi_->getBlankSettings().top = marginTop * 2;
+        dvi_->getBlankSettings().bottom = marginBottom * 2;
         // dvi_->setScanLine(true);
         // 空サンプル詰めとく
         dvi_->getAudioRingBuffer().advanceWritePointer(255);
     }
 
-    bool initAll(char *selectedRom, uint32_t CPUFreqKHz)
+    bool initAll(char *selectedRom, uint32_t CPUFreqKHz, int marginTop, int marginBottom)
     {
         bool ok = false;
         int rc = initLed();
@@ -542,7 +542,7 @@ namespace Frens
                 flashrom(selectedRom);
             }
         }
-        initDVandAudio();
+        initDVandAudio(marginTop, marginBottom);
         multicore_launch_core1(core1_main);
         initVintageControllers(CPUFreqKHz);
         return ok;
