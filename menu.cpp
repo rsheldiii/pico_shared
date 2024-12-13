@@ -12,7 +12,6 @@
 #include "util/exclusive_proc.h"
 #include "FrensFonts.h"
 #include "FrensHelpers.h"
-#include "InfoNES_System.h"
 #include "gamepad.h"
 #include "RomLister.h"
 #include "menu.h"
