@@ -68,6 +68,12 @@ namespace Frens
         return (strcmp(string + pos, width) == 0);
     }
 
+    uint32_t time_us()
+    {
+        absolute_time_t t = get_absolute_time();
+        return to_us_since_boot(t);
+    }
+
 #define INITIAL_CAPACITY 10
     // Split a string into tokens using the specified delimiters
     // The result is an array of dynamically allocated strings
@@ -487,7 +493,8 @@ namespace Frens
         wiipad_begin();
 #endif
     }
-    void initDVandAudio(int marginTop, int marginBottom)
+ 
+    void initDVandAudio(int marginTop, int marginBottom, size_t audioBufferSize)
     {
         //
         dvi_ = std::make_unique<dvi::DVI>(pio0, &DVICONFIG,
@@ -495,7 +502,7 @@ namespace Frens
         //    dvi_->setAudioFreq(48000, 25200, 6144);
         dvi_->setAudioFreq(44100, 28000, 6272);
 
-        dvi_->allocateAudioBuffer(256);
+        dvi_->allocateAudioBuffer(audioBufferSize);
         //    dvi_->setExclusiveProc(&exclProc_);
 
         dvi_->getBlankSettings().top = marginTop * 2;
@@ -504,8 +511,14 @@ namespace Frens
         // 空サンプル詰めとく
         dvi_->getAudioRingBuffer().advanceWritePointer(255);
     }
-
-    bool initAll(char *selectedRom, uint32_t CPUFreqKHz, int marginTop, int marginBottom)
+    
+    /// @brief Init dv and audio with default audio buffer size of 256
+    /// @param marginTop 
+    /// @param marginBottom 
+    void initDVandAudio(int marginTop, int marginBottom) {
+        initDVandAudio(marginTop, marginBottom, 256);
+    }
+    bool initAll(char *selectedRom, uint32_t CPUFreqKHz, int marginTop, int marginBottom, size_t audiobufferSize)
     {
         bool ok = false;
         int rc = initLed();
@@ -537,15 +550,25 @@ namespace Frens
             // The watchdog timer is used to detect if the reboot was caused by the menu.
             // Use watchdog_enable_caused_reboot in stead of watchdog_caused_reboot because
             // when reset is pressed while in game, the watchdog will also be triggered.
-            if (watchdog_enable_caused_reboot())
+            if (true || watchdog_enable_caused_reboot())
             {
                 flashrom(selectedRom);
             }
         }
-        initDVandAudio(marginTop, marginBottom);
+        initDVandAudio(marginTop, marginBottom, audiobufferSize);
         multicore_launch_core1(core1_main);
         initVintageControllers(CPUFreqKHz);
         return ok;
+    }
+
+    /// @brief initAll with default audio buffer size of 512
+    /// @param selectedRom 
+    /// @param CPUFreqKHz 
+    /// @param marginTop 
+    /// @param marginBottom 
+    /// @return 
+    bool initAll(char *selectedRom, uint32_t CPUFreqKHz, int marginTop, int marginBottom) {
+        return initAll(selectedRom, CPUFreqKHz, marginTop, marginBottom, 512);
     }
     void resetWifi()
     {
