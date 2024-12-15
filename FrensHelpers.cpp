@@ -550,7 +550,7 @@ namespace Frens
             // The watchdog timer is used to detect if the reboot was caused by the menu.
             // Use watchdog_enable_caused_reboot in stead of watchdog_caused_reboot because
             // when reset is pressed while in game, the watchdog will also be triggered.
-            if (true || watchdog_enable_caused_reboot())
+            if (watchdog_enable_caused_reboot())
             {
                 flashrom(selectedRom);
             }
