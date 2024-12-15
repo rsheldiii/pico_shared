@@ -561,14 +561,14 @@ namespace Frens
         return ok;
     }
 
-    /// @brief initAll with default audio buffer size of 512
+    /// @brief initAll with default audio buffer size of 256
     /// @param selectedRom 
     /// @param CPUFreqKHz 
     /// @param marginTop 
     /// @param marginBottom 
     /// @return 
     bool initAll(char *selectedRom, uint32_t CPUFreqKHz, int marginTop, int marginBottom) {
-        return initAll(selectedRom, CPUFreqKHz, marginTop, marginBottom, 512);
+        return initAll(selectedRom, CPUFreqKHz, marginTop, marginBottom, 256);
     }
     void resetWifi()
     {
