@@ -87,7 +87,14 @@ namespace Frens
 					// if (!romInfo.IsDirectory && Frens::cstr_endswith(romInfo.Path, ".nes"))
 					if (!romInfo.IsDirectory && IsextensionAllowed(romInfo.Path))
 					{
-						entries[numberOfEntries++] = romInfo;
+						if (file.fsize < maxRomSize)
+						{
+							entries[numberOfEntries++] = romInfo;
+						}
+						else
+						{
+							printf("Skipping %s, %d KBytes too large.\n", file.fname, (file.fsize - maxRomSize) / 1024);
+						}
 					}
 					else
 					{
