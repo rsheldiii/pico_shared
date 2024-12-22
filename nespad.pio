@@ -9,14 +9,14 @@
 .side_set 1
 
 .wrap_target
-  irq wait 0      side 0      ; Set IRQ and wait for CPU to clear it
-  set pins, 1     side 0 [10] ; Latch high, 12 uS total
-  set x, 7        side 0      ; Set bit counter
-  set pins, 0     side 0      ; Latch low
+  irq wait 0      side 1      ; Set IRQ and wait for CPU to clear it
+  set pins, 1     side 1 [10] ; Latch high, 12 uS total
+  set x, 7        side 1      ; Set bit counter
+  set pins, 0     side 1      ; Latch low
 bitloop:
-  in pins, 1      side 0 [4]  ; Read bit on falling clock or latch, wait 6 uS
-  set pins, 0     side 1 [5]  ; Clock high, wait for 6 uS
-  jmp x-- bitloop side 0      ; Clock low, repeat for 8 bits
+  set pins, 0     side 1 [8] 
+  in pins, 1      side 0 [2]  ; Read bit on falling clock or latch, wait 3 uS
+  jmp x-- bitloop side 1      ; Clock high, repeat for 8 bits
 ; Autopush will write byte to FIFO at this point
 .wrap
 
