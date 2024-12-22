@@ -266,7 +266,14 @@ namespace Frens
             scanLine = false;
             printf("ScreenMode::NOSCANLINE_8_7\n");
             break;
+        case ScreenMode::MAX:
+            scaleMode8_7_ = false;
+            scanLine = false;
+            printf("ScreenMode::MAX\n");
+            break;
         }
+        
+
         dvi_->setScanLine(scanLine);
         return scaleMode8_7_;
     }
@@ -421,7 +428,7 @@ namespace Frens
                 {
                     // Default
                     dvi_->convertScanBuffer12bppScaled16_7(34, 32, 288 * 2);
-
+                    //dvi_->convertScanBuffer12bppScaled16_7(0,0 , 320 * 2);
                     // 34 + 252 + 34
                     // 32 + 576 + 32
                 }
@@ -527,17 +534,18 @@ namespace Frens
             printf("Error initializing LED: %d\n", rc);
         }
         // Calculate the address in flash where roms will be stored
-        printf("Flash binary start: 0x%08x\n", &__flash_binary_start);
-        printf("Flash binary end  : 0x%08x\n", &__flash_binary_end);
-        printf("Flash byte size   :   %08d\n", PICO_FLASH_SIZE_BYTES);
+        printf("Flash binary start    : 0x%08x\n", &__flash_binary_start);
+        printf("Flash binary end      : 0x%08x\n", &__flash_binary_end);
+        printf("Flash size in bytes   :   %8d (%d)Kbytes\n", PICO_FLASH_SIZE_BYTES, PICO_FLASH_SIZE_BYTES / 1024);
         uint8_t *flash_end = (uint8_t *)&__flash_binary_start + PICO_FLASH_SIZE_BYTES - 1;
-        printf("Flash end         : 0x%08x\n", flash_end);
+        printf("Flash end             : 0x%08x\n", flash_end);
+        printf("Size program in flash :   %8d bytes (%d) Kbytes\n", &__flash_binary_end - &__flash_binary_start, (&__flash_binary_end - &__flash_binary_start) / 1024);
         // round ROM_FILE_ADDRESS address up to 4k boundary of flash_binary_end
         ROM_FILE_ADDR = ((uintptr_t)&__flash_binary_end + 0xFFF) & ~0xFFF;
         // calculate max rom size
         maxRomSize = flash_end - (uint8_t *)ROM_FILE_ADDR;
-        printf("ROM_FILE_ADDR     : 0x%08x\n", ROM_FILE_ADDR);
-        printf("Max ROM size      :   %08d bytes\n", maxRomSize);
+        printf("ROM_FILE_ADDR         : 0x%08x\n", ROM_FILE_ADDR);
+        printf("Max ROM size          :   %8d bytes (%d) KBytes\n", maxRomSize, maxRomSize / 1024);
 
         // reset settings to default in case SD card could not be mounted
         resetsettings();
