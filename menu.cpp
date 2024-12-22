@@ -236,7 +236,7 @@ void RomSelect_DrawLine(int line, int selectedRow)
 void drawline(int scanline, int selectedRow)
 {
     auto b = dvi_->getLineBuffer();
-    WorkLineRom = b->data() + 32;
+    WorkLineRom = b->data(); // + 32;
     RomSelect_DrawLine(scanline - 4, selectedRow);
     dvi_->setLineBuffer(scanline, b);
 }
@@ -444,10 +444,15 @@ static char *globalErrorMessage;
 
 void menu(const char *title, char *errorMessage, bool isFatal, bool showSplash, const char *allowedExtensions)
 {
-    // int firstVisibleRowINDEX = 0;
-    // int selectedRow = STARTROW;
-    // char currentDir[FF_MAX_LFN];
-    // int horzontalScrollIndex = 0;
+    // Use the entire screen resolution of 320x240 pixels. This would theoretically make a 40x30 column screen with 8x8 font possible.
+    scaleMode8_7_ = Frens::applyScreenMode(ScreenMode::MAX); 
+    // However, the screen is limited to 40x29 columns, because the top and bottom margins are set to 4 pixels each.
+    // The setting below adds a 4 pixel margin to the top and bottom of the screen. This seems to be a minimum value. 
+    // Setting this to 0 or -1 for getting 30 rows will not work. It then just displays 4 red
+    // lines at the top and bottom of the screen. 
+    dvi_->getBlankSettings().top = 4 * 2;
+    dvi_->getBlankSettings().bottom = 4 * 2;
+    
     menutitle = (char *)title;
     int totalFrames = -1;
     if (settings.selectedRow <= 0)
