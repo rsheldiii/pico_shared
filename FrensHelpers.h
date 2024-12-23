@@ -34,6 +34,7 @@ extern bool scaleMode8_7_;
 
 extern char __flash_binary_start;  // defined in linker script
 extern char __flash_binary_end; 
+
 namespace Frens
 {
     bool endsWith(std::string const &str, std::string const &suffix);
@@ -52,11 +53,13 @@ namespace Frens
     void initVintageControllers(uint32_t CPUFreqKHz);
     void initDVandAudio(int marginTop, int marginBottom);
     void initDVandAudio(int marginTop, int marginBottom, size_t audioBufferSize);
-    bool initAll(char *selectedRom, uint32_t CPUFreqKHz, int marginTop, int marginBottom);
-    bool initAll(char *selectedRom, uint32_t CPUFreqKHz, int marginTop, int marginBottom, size_t audiobufferSize);
+    //bool initAll(char *selectedRom, uint32_t CPUFreqKHz, int marginTop, int marginBottom);
+    bool initAll(char *selectedRom, uint32_t CPUFreqKHz, int marginTop, int marginBottom, size_t audiobufferSize = 256, bool swapbytes = false);
     void blinkLed(bool on);
     void resetWifi();
+    void printbin16(int16_t v);
     uint32_t time_us();
+   
 } // namespace Frens
 
 
