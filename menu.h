@@ -14,7 +14,7 @@
 #endif
 
 #define SCREEN_COLS 40
-#define SCREEN_ROWS 29
+#define SCREEN_ROWS 30
 
 #define STARTROW 3
 #define ENDROW (SCREEN_ROWS - 5)
