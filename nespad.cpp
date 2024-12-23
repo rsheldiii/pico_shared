@@ -4,14 +4,14 @@
 #define nespad_wrap 6
 
 static const uint16_t nespad_program_instructions[] = {
-    //     .wrap_target
-    0xc020, //  0: irq    wait 0          side 0
-    0xea01, //  1: set    pins, 1         side 0 [10]
-    0xe027, //  2: set    x, 7            side 0
-    0xe000, //  3: set    pins, 0         side 0
-    0x4401, //  4: in     pins, 1         side 0 [4]
-    0xf500, //  5: set    pins, 0         side 1 [5]
-    0x0044, //  6: jmp    x--, 4          side 0
+            //     .wrap_target
+    0xd020, //  0: irq    wait 0          side 1     
+    0xfa01, //  1: set    pins, 1         side 1 [10]
+    0xf027, //  2: set    x, 7            side 1     
+    0xf000, //  3: set    pins, 0         side 1     
+    0xf800, //  4: set    pins, 0         side 1 [8] 
+    0x4201, //  5: in     pins, 1         side 0 [2] 
+    0x1044, //  6: jmp    x--, 4          side 1     
             //     .wrap
 };
 
@@ -21,12 +21,11 @@ static const struct pio_program nespad_program = {
     .origin = -1,
 };
 
-static inline pio_sm_config nespad_program_get_default_config(uint offset)
-{
-  pio_sm_config c = pio_get_default_sm_config();
-  sm_config_set_wrap(&c, offset + nespad_wrap_target, offset + nespad_wrap);
-  sm_config_set_sideset(&c, 1, false, false);
-  return c;
+static inline pio_sm_config nespad_program_get_default_config(uint offset) {
+    pio_sm_config c = pio_get_default_sm_config();
+    sm_config_set_wrap(&c, offset + nespad_wrap_target, offset + nespad_wrap);
+    sm_config_set_sideset(&c, 1, false, false);
+    return c;
 }
 
 static PIO pio[2];
