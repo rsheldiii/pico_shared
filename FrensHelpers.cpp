@@ -28,10 +28,12 @@ char ErrorMessage[ERRORMESSAGESIZE];
 bool scaleMode8_7_ = true;
 uintptr_t ROM_FILE_ADDR = 0;
 int maxRomSize = 0;
+ 
 namespace Frens
 {
     static FATFS fs;
-    // various helper functions
+
+    // 
     //
     // test if string ends with suffix
     //
@@ -184,6 +186,18 @@ namespace Frens
         }
         *lastdot = 0;
     }
+    
+    // print an int16 as binary
+    void printbin16(int16_t v)
+    {
+        for (int i = 15; i >= 0; i--)
+        {
+            printf("%d", (v >> i) & 1);
+        }
+    }
+   
+    // End of variuos helper functions
+
     // Initialize the SD card
     bool initSDCard()
     {
@@ -266,7 +280,14 @@ namespace Frens
             scanLine = false;
             printf("ScreenMode::NOSCANLINE_8_7\n");
             break;
+        case ScreenMode::MAX:
+            scaleMode8_7_ = false;
+            scanLine = false;
+            printf("ScreenMode::MAX\n");
+            break;
         }
+        
+
         dvi_->setScanLine(scanLine);
         return scaleMode8_7_;
     }
@@ -280,7 +301,7 @@ namespace Frens
         return scaleMode8_7_;
     }
 
-    void flashrom(char *selectedRom)
+    void flashrom(char *selectedRom, bool swapbytes)
     {
         // Determine loaded rom
         printf("Rebooted by menu\n");
@@ -288,6 +309,9 @@ namespace Frens
         FRESULT fr;
         size_t tmpSize;
         printf("Reading current game from %s and starting emulator\n", ROMINFOFILE);
+        if (swapbytes) {
+            printf("Rom will be byteswapped.\n");
+        }
         fr = f_open(&fil, ROMINFOFILE, FA_READ);
         if (fr == FR_OK)
         {
@@ -342,6 +366,14 @@ namespace Frens
                                 if (bytesRead == 0)
                                 {
                                     break;
+                                }
+                                if (swapbytes) {
+                                    // SWAP LO<>HI
+                                    for (int i = 0; i < bytesRead; i += 2) {
+                                        const unsigned char temp = buffer[i];
+                                        buffer[i] = buffer[i + 1];
+                                        buffer[i + 1] = temp;
+                                    }
                                 }
                                 blinkLed(onOff);
                                 onOff = !onOff;
@@ -421,7 +453,7 @@ namespace Frens
                 {
                     // Default
                     dvi_->convertScanBuffer12bppScaled16_7(34, 32, 288 * 2);
-
+                    //dvi_->convertScanBuffer12bppScaled16_7(0,0 , 320 * 2);
                     // 34 + 252 + 34
                     // 32 + 576 + 32
                 }
@@ -518,7 +550,7 @@ namespace Frens
     void initDVandAudio(int marginTop, int marginBottom) {
         initDVandAudio(marginTop, marginBottom, 256);
     }
-    bool initAll(char *selectedRom, uint32_t CPUFreqKHz, int marginTop, int marginBottom, size_t audiobufferSize)
+    bool initAll(char *selectedRom, uint32_t CPUFreqKHz, int marginTop, int marginBottom, size_t audiobufferSize, bool swapbytes)
     {
         bool ok = false;
         int rc = initLed();
@@ -527,17 +559,18 @@ namespace Frens
             printf("Error initializing LED: %d\n", rc);
         }
         // Calculate the address in flash where roms will be stored
-        printf("Flash binary start: 0x%08x\n", &__flash_binary_start);
-        printf("Flash binary end  : 0x%08x\n", &__flash_binary_end);
-        printf("Flash byte size   :   %08d\n", PICO_FLASH_SIZE_BYTES);
+        printf("Flash binary start    : 0x%08x\n", &__flash_binary_start);
+        printf("Flash binary end      : 0x%08x\n", &__flash_binary_end);
+        printf("Flash size in bytes   :   %8d (%d)Kbytes\n", PICO_FLASH_SIZE_BYTES, PICO_FLASH_SIZE_BYTES / 1024);
         uint8_t *flash_end = (uint8_t *)&__flash_binary_start + PICO_FLASH_SIZE_BYTES - 1;
-        printf("Flash end         : 0x%08x\n", flash_end);
+        printf("Flash end             : 0x%08x\n", flash_end);
+        printf("Size program in flash :   %8d bytes (%d) Kbytes\n", &__flash_binary_end - &__flash_binary_start, (&__flash_binary_end - &__flash_binary_start) / 1024);
         // round ROM_FILE_ADDRESS address up to 4k boundary of flash_binary_end
         ROM_FILE_ADDR = ((uintptr_t)&__flash_binary_end + 0xFFF) & ~0xFFF;
         // calculate max rom size
         maxRomSize = flash_end - (uint8_t *)ROM_FILE_ADDR;
-        printf("ROM_FILE_ADDR     : 0x%08x\n", ROM_FILE_ADDR);
-        printf("Max ROM size      :   %08d bytes\n", maxRomSize);
+        printf("ROM_FILE_ADDR         : 0x%08x\n", ROM_FILE_ADDR);
+        printf("Max ROM size          :   %8d bytes (%d) KBytes\n", maxRomSize, maxRomSize / 1024);
 
         // reset settings to default in case SD card could not be mounted
         resetsettings();
@@ -552,7 +585,7 @@ namespace Frens
             // when reset is pressed while in game, the watchdog will also be triggered.
             if (watchdog_enable_caused_reboot())
             {
-                flashrom(selectedRom);
+                flashrom(selectedRom, swapbytes);
             }
         }
         initDVandAudio(marginTop, marginBottom, audiobufferSize);
@@ -567,9 +600,9 @@ namespace Frens
     /// @param marginTop 
     /// @param marginBottom 
     /// @return 
-    bool initAll(char *selectedRom, uint32_t CPUFreqKHz, int marginTop, int marginBottom) {
-        return initAll(selectedRom, CPUFreqKHz, marginTop, marginBottom, 256);
-    }
+    // bool initAll(char *selectedRom, uint32_t CPUFreqKHz, int marginTop, int marginBottom) {
+    //     return initAll(selectedRom, CPUFreqKHz, marginTop, marginBottom, 256);
+    // }
     void resetWifi()
     {
 #if defined(CYW43_WL_GPIO_LED_PIN)

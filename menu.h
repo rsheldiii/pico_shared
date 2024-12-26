@@ -13,11 +13,11 @@
 #define PICOHWNAME_ "rp2040"
 #endif
 
-#define SCREEN_COLS 32
-#define SCREEN_ROWS 29
+#define SCREEN_COLS 40
+#define SCREEN_ROWS 30
 
 #define STARTROW 3
-#define ENDROW 24
+#define ENDROW (SCREEN_ROWS - 5)
 #define PAGESIZE (ENDROW - STARTROW + 1)
 
 #define VISIBLEPATHSIZE (SCREEN_COLS - 3)   

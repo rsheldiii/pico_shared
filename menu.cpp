@@ -236,8 +236,8 @@ void RomSelect_DrawLine(int line, int selectedRow)
 void drawline(int scanline, int selectedRow)
 {
     auto b = dvi_->getLineBuffer();
-    WorkLineRom = b->data() + 32;
-    RomSelect_DrawLine(scanline - 4, selectedRow);
+    WorkLineRom = b->data();
+    RomSelect_DrawLine(scanline, selectedRow);
     dvi_->setLineBuffer(scanline, b);
 }
 
@@ -274,7 +274,7 @@ void DrawScreen(int selectedRow)
         putText(SCREEN_COLS / 2 - strlen(tmpstr) / 2, SCREEN_ROWS - 1, tmpstr, CBLUE, CWHITE);
     }
    
-    for (auto line = 4; line < 236; line++)
+    for (auto line = 0; line < 240; line++)
     {
         drawline(line, selectedRow);
     }
@@ -444,10 +444,11 @@ static char *globalErrorMessage;
 
 void menu(const char *title, char *errorMessage, bool isFatal, bool showSplash, const char *allowedExtensions)
 {
-    // int firstVisibleRowINDEX = 0;
-    // int selectedRow = STARTROW;
-    // char currentDir[FF_MAX_LFN];
-    // int horzontalScrollIndex = 0;
+    // Use the entire screen resolution of 320x240 pixels. This makes a 40x30 screen with 8x8 font possible.
+    scaleMode8_7_ = Frens::applyScreenMode(ScreenMode::MAX); 
+    dvi_->getBlankSettings().top = 0;
+    dvi_->getBlankSettings().bottom = 0;
+    //
     menutitle = (char *)title;
     int totalFrames = -1;
     if (settings.selectedRow <= 0)
