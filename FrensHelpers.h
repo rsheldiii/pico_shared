@@ -53,7 +53,6 @@ namespace Frens
     void initVintageControllers(uint32_t CPUFreqKHz);
     void initDVandAudio(int marginTop, int marginBottom);
     void initDVandAudio(int marginTop, int marginBottom, size_t audioBufferSize);
-    //bool initAll(char *selectedRom, uint32_t CPUFreqKHz, int marginTop, int marginBottom);
     bool initAll(char *selectedRom, uint32_t CPUFreqKHz, int marginTop, int marginBottom, size_t audiobufferSize = 256, bool swapbytes = false);
     void blinkLed(bool on);
     void resetWifi();
