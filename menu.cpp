@@ -21,6 +21,7 @@
 #include "font_8x8.h"
 #include "settings.h"
 
+
 #define CC(x) (((x >> 1) & 15) | (((x >> 6) & 15) << 4) | (((x >> 11) & 15) << 8))
 const WORD NesMenuPalette[64] = {
     CC(0x39ce), CC(0x1071), CC(0x0015), CC(0x2013), CC(0x440e), CC(0x5402), CC(0x5000), CC(0x3c20),
@@ -37,6 +38,9 @@ static char connectedGamePadName[sizeof(io::GamePadState::GamePadName)];
 
 #define SCREENBUFCELLS SCREEN_ROWS *SCREEN_COLS
 charCell *screenBuffer;
+
+#define LONG_PRESS_TRESHOLD (500)
+#define REPEAT_DELAY  (40)
 
 static WORD *WorkLineRom = nullptr;
 void RomSelect_SetLineBuffer(WORD *p, WORD size)
@@ -87,15 +91,21 @@ int Menu_LoadFrame()
 }
 
 bool resetScreenSaver = false;
+
 void RomSelect_PadState(DWORD *pdwPad1, bool ignorepushed = false)
 {
-
+    static uint32_t upcounter = 0;
+    static uint32_t downcounter = 0; 
+    static uint32_t previousTime = Frens::time_ms();
+    uint32_t currentTime = Frens::time_ms();
+    uint32_t delta;
     int prevBgColor = settings.bgcolor;
     int prevFgColor = settings.fgcolor;
     static DWORD prevButtons{};
     auto &gp = io::getCurrentGamePadState(0);
     strcpy(connectedGamePadName, gp.GamePadName);
-
+    delta = currentTime - previousTime;
+    previousTime = currentTime;
     int v = (gp.buttons & io::GamePadState::Button::LEFT ? LEFT : 0) |
             (gp.buttons & io::GamePadState::Button::RIGHT ? RIGHT : 0) |
             (gp.buttons & io::GamePadState::Button::UP ? UP : 0) |
@@ -107,6 +117,8 @@ void RomSelect_PadState(DWORD *pdwPad1, bool ignorepushed = false)
             (gp.buttons & io::GamePadState::Button::X ? X : 0) |
             (gp.buttons & io::GamePadState::Button::Y ? Y : 0) |
             0;
+   
+   
 #if NES_PIN_CLK != -1
     v |= nespad_states[0];
 #endif
@@ -116,7 +128,16 @@ void RomSelect_PadState(DWORD *pdwPad1, bool ignorepushed = false)
 #if WII_PIN_SDA >= 0 and WII_PIN_SCL >= 0
     v |= wiipad_read();
 #endif
-
+     if ( v & UP ) {
+        upcounter += delta;
+    } else {
+        upcounter = 0;
+    }
+    if ( v & DOWN ) {
+        downcounter += delta;
+    } else {
+        downcounter = 0;
+    }
     *pdwPad1 = 0;
 
     unsigned long pushed;
@@ -183,8 +204,16 @@ void RomSelect_PadState(DWORD *pdwPad1, bool ignorepushed = false)
        
         v = 0;
     }
-    if (pushed)
+   
+    if (pushed || (downcounter > LONG_PRESS_TRESHOLD || upcounter > LONG_PRESS_TRESHOLD))
     {
+        if ( ! pushed) {
+            if ( upcounter > LONG_PRESS_TRESHOLD) {
+                upcounter -= REPEAT_DELAY;
+            } else if ( downcounter > LONG_PRESS_TRESHOLD) {
+                downcounter -= REPEAT_DELAY;
+            }   
+        }
         *pdwPad1 = v;
         if ( v != 0)
         {
@@ -542,8 +571,17 @@ void menu(const char *title, char *errorMessage, bool isFatal, bool showSplash, 
                     if (settings.firstVisibleRowINDEX > 0)
                     {
                         settings.firstVisibleRowINDEX--;
-                        displayRoms(romlister, settings.firstVisibleRowINDEX);
+                    } else {
+                        settings.firstVisibleRowINDEX = romlister.Count() - PAGESIZE;
+                        settings.selectedRow = ENDROW;   
+                        if (settings.firstVisibleRowINDEX < 0)
+                        {
+                            settings.firstVisibleRowINDEX = 0;
+                            settings.selectedRow = romlister.Count() + STARTROW - 1;
+                        }
+                                            
                     }
+                    displayRoms(romlister, settings.firstVisibleRowINDEX);
                 }
             }
             else if ((PAD1_Latch & DOWN) == DOWN && selectedRomOrFolder)
@@ -558,17 +596,28 @@ void menu(const char *title, char *errorMessage, bool isFatal, bool showSplash, 
                     {
                         settings.firstVisibleRowINDEX++;
                         displayRoms(romlister, settings.firstVisibleRowINDEX);
+                    } else {
+
+                        settings.firstVisibleRowINDEX = 0;
+                        settings.selectedRow = STARTROW;
+                        displayRoms(romlister, settings.firstVisibleRowINDEX);
                     }
                 }
             }
             else if ((PAD1_Latch & LEFT) == LEFT && selectedRomOrFolder)
             {
                 settings.firstVisibleRowINDEX -= PAGESIZE;
+                settings.selectedRow = STARTROW;
                 if (settings.firstVisibleRowINDEX < 0)
                 {
-                    settings.firstVisibleRowINDEX = 0;
-                }
-                settings.selectedRow = STARTROW;
+                    settings.firstVisibleRowINDEX = romlister.Count() - PAGESIZE;
+                    settings.selectedRow = ENDROW;
+                    if (settings.firstVisibleRowINDEX < 0)
+                    {
+                        settings.firstVisibleRowINDEX = 0;
+                        settings.selectedRow = romlister.Count() + STARTROW - 1;
+                    }
+                }            
                 displayRoms(romlister, settings.firstVisibleRowINDEX);
             }
             else if ((PAD1_Latch & RIGHT) == RIGHT && selectedRomOrFolder)
@@ -576,6 +625,8 @@ void menu(const char *title, char *errorMessage, bool isFatal, bool showSplash, 
                 if (settings.firstVisibleRowINDEX + PAGESIZE < romlister.Count())
                 {
                     settings.firstVisibleRowINDEX += PAGESIZE;
+                } else {
+                    settings.firstVisibleRowINDEX = 0;
                 }
                 settings.selectedRow = STARTROW;
                 displayRoms(romlister, settings.firstVisibleRowINDEX);
@@ -732,7 +783,7 @@ void menu(const char *title, char *errorMessage, bool isFatal, bool showSplash, 
         }
         if ((frameCount - totalFrames) > 800)
         {
-            printf("Starting screensaver\n");
+            // printf("Starting screensaver\n");
             totalFrames = -1;
             screenSaver();
             displayRoms(romlister, settings.firstVisibleRowINDEX);
