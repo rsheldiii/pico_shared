@@ -204,7 +204,7 @@ if [ -z "$TOOLCHAIN_PATH" ] ; then
 else
 	cmake -DCMAKE_BUILD_TYPE=$BUILD -DPICO_BOARD=$PICO_BOARD -DHW_CONFIG=$HWCONFIG -DPICO_PLATFORM=$PICO_PLATFORM -DPICO_TOOLCHAIN_PATH=$TOOLCHAIN_PATH ..
 fi
-make -j 4
+make -j "`nproc`"
 cd ..
 echo ""
 if [ -f build/${APP}.uf2 ] ; then
