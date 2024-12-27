@@ -57,7 +57,8 @@ namespace Frens
     void blinkLed(bool on);
     void resetWifi();
     void printbin16(int16_t v);
-    uint32_t time_us();
+    uint64_t time_us();
+    uint32_t time_ms();
    
 } // namespace Frens
 
