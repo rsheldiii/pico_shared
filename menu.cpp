@@ -94,8 +94,7 @@ bool resetScreenSaver = false;
 
 void RomSelect_PadState(DWORD *pdwPad1, bool ignorepushed = false)
 {
-    static uint32_t upcounter = 0;
-    static uint32_t downcounter = 0; 
+    static uint32_t longpressTreshold = 0;
     static uint32_t previousTime = Frens::time_ms();
     uint32_t currentTime = Frens::time_ms();
     uint32_t delta;
@@ -104,8 +103,8 @@ void RomSelect_PadState(DWORD *pdwPad1, bool ignorepushed = false)
     static DWORD prevButtons{};
     auto &gp = io::getCurrentGamePadState(0);
     strcpy(connectedGamePadName, gp.GamePadName);
-    delta = currentTime - previousTime;
-    previousTime = currentTime;
+    
+   
     int v = (gp.buttons & io::GamePadState::Button::LEFT ? LEFT : 0) |
             (gp.buttons & io::GamePadState::Button::RIGHT ? RIGHT : 0) |
             (gp.buttons & io::GamePadState::Button::UP ? UP : 0) |
@@ -128,16 +127,14 @@ void RomSelect_PadState(DWORD *pdwPad1, bool ignorepushed = false)
 #if WII_PIN_SDA >= 0 and WII_PIN_SCL >= 0
     v |= wiipad_read();
 #endif
-     if ( v & UP ) {
-        upcounter += delta;
+    delta = currentTime - previousTime;
+    previousTime = currentTime;
+    if ( v & UP || v & DOWN || v & LEFT || v & RIGHT ) {
+        longpressTreshold += delta;
     } else {
-        upcounter = 0;
+        longpressTreshold = 0;
     }
-    if ( v & DOWN ) {
-        downcounter += delta;
-    } else {
-        downcounter = 0;
-    }
+  
     *pdwPad1 = 0;
 
     unsigned long pushed;
@@ -205,14 +202,12 @@ void RomSelect_PadState(DWORD *pdwPad1, bool ignorepushed = false)
         v = 0;
     }
    
-    if (pushed || (downcounter > LONG_PRESS_TRESHOLD || upcounter > LONG_PRESS_TRESHOLD))
+    if (pushed || longpressTreshold > LONG_PRESS_TRESHOLD)
     {
         if ( ! pushed) {
-            if ( upcounter > LONG_PRESS_TRESHOLD) {
-                upcounter -= REPEAT_DELAY;
-            } else if ( downcounter > LONG_PRESS_TRESHOLD) {
-                downcounter -= REPEAT_DELAY;
-            }   
+            if ( longpressTreshold > LONG_PRESS_TRESHOLD) {
+                longpressTreshold -= REPEAT_DELAY;
+            } 
         }
         *pdwPad1 = v;
         if ( v != 0)
