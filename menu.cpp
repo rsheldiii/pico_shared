@@ -129,7 +129,7 @@ void RomSelect_PadState(DWORD *pdwPad1, bool ignorepushed = false)
 #endif
     delta = currentTime - previousTime;
     previousTime = currentTime;
-    if ( v & UP || v & DOWN || v & LEFT || v & RIGHT ) {
+    if (v & (UP | DOWN | LEFT | RIGHT)) {
         longpressTreshold += delta;
     } else {
         longpressTreshold = 0;
