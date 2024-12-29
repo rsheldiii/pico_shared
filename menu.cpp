@@ -206,7 +206,7 @@ void RomSelect_PadState(DWORD *pdwPad1, bool ignorepushed = false)
     {
         if ( ! pushed) {
             if ( longpressTreshold > LONG_PRESS_TRESHOLD) {
-                longpressTreshold -= REPEAT_DELAY;
+                longpressTreshold = LONG_PRESS_TRESHOLD - REPEAT_DELAY;
             } 
         }
         *pdwPad1 = v;
