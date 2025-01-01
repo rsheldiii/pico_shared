@@ -70,10 +70,16 @@ namespace Frens
         return (strcmp(string + pos, width) == 0);
     }
 
-    uint32_t time_us()
+    uint64_t time_us()
     {
         absolute_time_t t = get_absolute_time();
         return to_us_since_boot(t);
+    }
+
+    uint32_t time_ms()
+    {
+        absolute_time_t t = get_absolute_time();
+        return to_ms_since_boot(t);
     }
 
 #define INITIAL_CAPACITY 10
