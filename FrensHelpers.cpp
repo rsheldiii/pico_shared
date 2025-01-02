@@ -28,12 +28,31 @@ char ErrorMessage[ERRORMESSAGESIZE];
 bool scaleMode8_7_ = true;
 uintptr_t ROM_FILE_ADDR = 0;
 int maxRomSize = 0;
- 
+
 namespace Frens
 {
     static FATFS fs;
 
-    // 
+    uint8_t *framebuffer1; // [320 * 240];
+    uint8_t *framebuffer2; // [320 * 240];
+    uint8_t *framebufferCore0;
+
+    // Shared state
+    volatile bool framebuffer1_ready = false;
+    volatile bool framebuffer2_ready = false;
+    volatile bool use_framebuffer1 = true; // Toggle flag
+    volatile bool framebuffer1_rendering = false;
+    volatile bool framebuffer2_rendering = false;
+    volatile ProcessScanLineFunction processScanLineFunction;
+    // Mutex for synchronization
+    mutex_t framebuffer_mutex;
+    static bool usingFramebuffer = false;
+
+    bool isFrameBufferUsed()
+    {
+        return usingFramebuffer;
+    }
+    //
     //
     // test if string ends with suffix
     //
@@ -192,7 +211,7 @@ namespace Frens
         }
         *lastdot = 0;
     }
-    
+
     // print an int16 as binary
     void printbin16(int16_t v)
     {
@@ -201,7 +220,7 @@ namespace Frens
             printf("%d", (v >> i) & 1);
         }
     }
-   
+
     // End of variuos helper functions
 
     // Initialize the SD card
@@ -292,7 +311,6 @@ namespace Frens
             printf("ScreenMode::MAX\n");
             break;
         }
-        
 
         dvi_->setScanLine(scanLine);
         return scaleMode8_7_;
@@ -315,7 +333,8 @@ namespace Frens
         FRESULT fr;
         size_t tmpSize;
         printf("Reading current game from %s and starting emulator\n", ROMINFOFILE);
-        if (swapbytes) {
+        if (swapbytes)
+        {
             printf("Rom will be byteswapped.\n");
         }
         fr = f_open(&fil, ROMINFOFILE, FA_READ);
@@ -373,9 +392,11 @@ namespace Frens
                                 {
                                     break;
                                 }
-                                if (swapbytes) {
+                                if (swapbytes)
+                                {
                                     // SWAP LO<>HI
-                                    for (int i = 0; i < bytesRead; i += 2) {
+                                    for (int i = 0; i < bytesRead; i += 2)
+                                    {
                                         const unsigned char temp = buffer[i];
                                         buffer[i] = buffer[i + 1];
                                         buffer[i + 1] = temp;
@@ -445,6 +466,10 @@ namespace Frens
             }
         }
     }
+
+    /// @brief Render function in core1 to render line by line
+    /// @param
+    /// @return
     void __not_in_flash_func(core1_main)()
     {
         while (true)
@@ -459,9 +484,9 @@ namespace Frens
                 {
                     // Default
                     dvi_->convertScanBuffer12bppScaled16_7(34, 32, 288 * 2);
-                    //dvi_->convertScanBuffer12bppScaled16_7(0,0 , 320 * 2);
-                    // 34 + 252 + 34
-                    // 32 + 576 + 32
+                    // dvi_->convertScanBuffer12bppScaled16_7(0,0 , 320 * 2);
+                    //  34 + 252 + 34
+                    //  32 + 576 + 32
                 }
                 else
                 {
@@ -476,6 +501,117 @@ namespace Frens
             exclProc_.processOrWaitIfExist();
         }
     }
+
+    static WORD buffer[320];
+    /// @brief Render function in core1 to render the framebuffers
+    /// @param
+    /// @return
+    void __not_in_flash_func(coreFB_main)()
+    {
+        uint8_t *framebufferCore1 = framebuffer1;
+        dvi_->registerIRQThisCore();
+        dvi_->start();
+        int fb1 = 0;
+        int fb2 = 0;
+        int frame = 0;
+
+        while (true)
+        {
+            bool may_render = false;
+            // Try to acquire the mutex to check for new frames
+            if (mutex_try_enter(&framebuffer_mutex, NULL))
+            {
+                // Check if the other framebuffer is ready
+                if (framebuffer1_ready && !framebuffer1_rendering)
+                {
+                    // printf("Core 1: Switching to framebuffer1\n");
+                    framebuffer1_rendering = true;
+                    may_render = true;
+                    framebufferCore1 = framebuffer1;
+                    fb1 = 0;
+                }
+                else if (framebuffer2_ready && !framebuffer2_rendering)
+                {
+                    // printf("Core 1: Switching to framebuffer2\n");
+                    framebuffer2_rendering = true;
+                    may_render = true;
+                    framebufferCore1 = framebuffer2;
+                    fb2 = 0;
+                }
+                mutex_exit(&framebuffer_mutex);
+            }
+            if (may_render)
+            {
+                auto startLine = dvi_->getBlankSettings().top / 2;
+                auto endLine = dvi_->getBlankSettings().bottom / 2;
+                // printf("Core 1: Rendering frame %s %d\n", current_framebuffer == framebuffer1 ? "framebuffer1" : "framebuffer2", frame++);
+                for (int line = startLine; line < SCREENHEIGHT - endLine; ++line)
+                {
+                    uint8_t *current_line = &framebufferCore1[line * SCREENWIDTH];
+                    processScanLineFunction(current_line, buffer, SCREENWIDTH);
+
+                    // for (int kol = 0; kol < SCREENWIDTH; kol += 4)
+                    // {
+                    //     // buffer[kol] = NesPalette[current_line[kol]];
+                    //     // NesPalette[current_framebuffer[line * 320 + kol] & 0x3F];
+                    //     buffer[kol] = NesMenuPalette[current_line[kol]];
+                    //     buffer[kol + 1] = NesMenuPalette[current_line[kol + 1]];
+                    //     buffer[kol + 2] = NesMenuPalette[current_line[kol + 2]];
+                    //     buffer[kol + 3] = NesMenuPalette[current_line[kol + 3]];
+                    // }
+                    if (scaleMode8_7_)
+                    {
+                        dvi_->convertScanBuffer12bppScaled16_7(34, 32, 288 * 2, line, buffer, 640);
+                        // 34 + 252 + 34
+                        // 32 + 576 + 32
+                    }
+                    else
+                    {
+                        // printf("line: %d\n", line);
+                        dvi_->convertScanBuffer12bpp(line, buffer, 640);
+                    }
+                }
+                // Mark the framebuffer as no longer being rendered
+                mutex_enter_blocking(&framebuffer_mutex);
+                if (framebufferCore1 == framebuffer1)
+                {
+                    framebuffer1_rendering = false;
+
+                    fb1++;
+                    fb2 = 0;
+                }
+                else
+                {
+                    framebuffer2_rendering = false;
+
+                    fb2++;
+                    fb1 = 0;
+                }
+                mutex_exit(&framebuffer_mutex);
+                if (fb1 > 1)
+                {
+                    printf("fb1: %d\n", fb1);
+                    // printf("Framebuffer 1 ready: %d\n", framebuffer1_ready);
+                }
+                if (fb2 > 1)
+                {
+                    printf("fb2: %d\n", fb2);
+                    // printf("Framebuffer 2 ready: %d\n", framebuffer2_ready);
+                }
+            }
+        }
+    }
+
+    void SetFrameBufferProcessScanLineFunction(ProcessScanLineFunction processScanLineFunction)
+    {
+        if (isFrameBufferUsed())
+        {
+            mutex_enter_blocking(&framebuffer_mutex);
+            Frens::processScanLineFunction = processScanLineFunction;
+            mutex_exit(&framebuffer_mutex);
+        }
+    }
+
     void blinkLed(bool on)
     {
 #if LED_GPIO_PIN > -1
@@ -531,7 +667,7 @@ namespace Frens
         wiipad_begin();
 #endif
     }
- 
+
     void initDVandAudio(int marginTop, int marginBottom, size_t audioBufferSize)
     {
         //
@@ -549,14 +685,16 @@ namespace Frens
         // 空サンプル詰めとく
         dvi_->getAudioRingBuffer().advanceWritePointer(255);
     }
-    
+
     /// @brief Init dv and audio with default audio buffer size of 256
-    /// @param marginTop 
-    /// @param marginBottom 
-    void initDVandAudio(int marginTop, int marginBottom) {
+    /// @param marginTop
+    /// @param marginBottom
+    void initDVandAudio(int marginTop, int marginBottom)
+    {
         initDVandAudio(marginTop, marginBottom, 256);
     }
-    bool initAll(char *selectedRom, uint32_t CPUFreqKHz, int marginTop, int marginBottom, size_t audiobufferSize, bool swapbytes)
+    bool initAll(char *selectedRom, uint32_t CPUFreqKHz, int marginTop, int marginBottom, size_t audiobufferSize, bool swapbytes, bool useFrameBuffer)
+
     {
         bool ok = false;
         int rc = initLed();
@@ -594,21 +732,65 @@ namespace Frens
                 flashrom(selectedRom, swapbytes);
             }
         }
+        usingFramebuffer = useFrameBuffer;
+        if (useFrameBuffer)
+        {
+            framebuffer1 = (uint8_t *)malloc(SCREENWIDTH * SCREENHEIGHT);
+            framebuffer2 = (uint8_t *)malloc(SCREENWIDTH * SCREENHEIGHT);
+            framebufferCore0 = framebuffer1;
+            if (framebuffer1 == NULL || framebuffer2 == NULL)
+            {
+                printf("Error allocating framebuffers\n");
+                ok = false;
+            }
+            mutex_init(&framebuffer_mutex);
+        }
         initDVandAudio(marginTop, marginBottom, audiobufferSize);
-        multicore_launch_core1(core1_main);
+        if (useFrameBuffer)
+        {
+            multicore_launch_core1(coreFB_main);
+        }
+        else
+        {
+            multicore_launch_core1(core1_main);
+        }
         initVintageControllers(CPUFreqKHz);
         return ok;
     }
 
-    /// @brief initAll with default audio buffer size of 256
-    /// @param selectedRom 
-    /// @param CPUFreqKHz 
-    /// @param marginTop 
-    /// @param marginBottom 
-    /// @return 
-    // bool initAll(char *selectedRom, uint32_t CPUFreqKHz, int marginTop, int marginBottom) {
-    //     return initAll(selectedRom, CPUFreqKHz, marginTop, marginBottom, 256);
-    // }
+    void markFrameReadyForReendering()
+    {
+        // switch framebuffers
+        // Lock the mutex only to update shared state
+        mutex_enter_blocking(&framebuffer_mutex);
+        if (use_framebuffer1)
+        {
+            framebuffer1_ready = true;
+            framebuffer2_ready = false;
+        }
+        else
+        {
+            framebuffer1_ready = false;
+            framebuffer2_ready = true;
+        }
+        use_framebuffer1 = !use_framebuffer1; // Toggle the framebuffer
+        framebufferCore0 = use_framebuffer1 ? framebuffer1 : framebuffer2;
+        mutex_exit(&framebuffer_mutex);
+        // Wait if core1 is still rendering the framebuffer whe just switched to
+#if 0
+        int start = time_us_64();
+#endif
+        while ((use_framebuffer1 && framebuffer1_rendering) || (!use_framebuffer1 && framebuffer2_rendering))
+        {
+            tight_loop_contents();
+        }
+#if 0
+        int end = time_us_64();
+        printf("Core 0: Switching framebuffers took %ld us\n", end - start);
+#endif
+        // continue processing next frame while the other core renders the framebuffer
+    }
+
     void resetWifi()
     {
 #if defined(CYW43_WL_GPIO_LED_PIN)

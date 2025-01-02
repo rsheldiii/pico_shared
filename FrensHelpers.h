@@ -3,6 +3,7 @@
 #include <string>
 #include <algorithm>
 #include <memory>
+#include <pico/mutex.h>
 
 #include "dvi/dvi.h"
 #include "dvi_configs.h"
@@ -26,6 +27,9 @@ enum class ScreenMode
 #define ERRORMESSAGESIZE 40
 #define GAMESAVEDIR "/SAVES"
 #define ROMINFOFILE "/currentloadedrom.txt"
+#define SCREENWIDTH 320
+#define SCREENHEIGHT 240
+
 extern uintptr_t ROM_FILE_ADDR ; //0x10090000
 extern int maxRomSize;
 extern char ErrorMessage[];
@@ -37,6 +41,17 @@ extern char __flash_binary_end;
 
 namespace Frens
 {
+    extern uint8_t *framebuffer1;  // [320 * 240];
+    extern uint8_t *framebuffer2;  // [320 * 240];
+    extern uint8_t *framebufferCore0;
+    extern volatile bool framebuffer1_ready;
+    extern volatile bool framebuffer2_ready;
+    extern volatile bool use_framebuffer1; // Toggle flag
+    extern volatile bool framebuffer1_rendering;
+    extern volatile bool framebuffer2_rendering;
+    // Mutex for synchronization
+    extern mutex_t framebuffer_mutex;
+
     bool endsWith(std::string const &str, std::string const &suffix);
     std::string str_tolower(std::string s);
 
@@ -53,12 +68,17 @@ namespace Frens
     void initVintageControllers(uint32_t CPUFreqKHz);
     void initDVandAudio(int marginTop, int marginBottom);
     void initDVandAudio(int marginTop, int marginBottom, size_t audioBufferSize);
-    bool initAll(char *selectedRom, uint32_t CPUFreqKHz, int marginTop, int marginBottom, size_t audiobufferSize = 256, bool swapbytes = false);
+    bool initAll(char *selectedRom, uint32_t CPUFreqKHz, int marginTop, int marginBottom, size_t audiobufferSize = 256, bool swapbytes = false, bool useFrameBuffer = false);
     void blinkLed(bool on);
     void resetWifi();
     void printbin16(int16_t v);
     uint64_t time_us();
     uint32_t time_ms();
+    bool isFrameBufferUsed();
+    void markFrameReadyForReendering();
+    typedef void (*ProcessScanLineFunction)(uint8_t *current_line, uint16_t *buffer, int screenWidth);
+    void SetFrameBufferProcessScanLineFunction(ProcessScanLineFunction processScanLineFunction);
+    //extern volatile ProcessScanLineFunction processScanLineFunction;
    
 } // namespace Frens
 
