@@ -524,7 +524,7 @@ void screenSaver()
     }
 }
 
-void __not_in_flash_func(processMenuScanLine)(uint8_t *current_line, uint16_t *buffer, int screenWidth)
+void __not_in_flash_func(processMenuScanLine)(int line, uint8_t *current_line, uint16_t *buffer, int screenWidth)
 {
     for (int kol = 0; kol < screenWidth; kol += 4)
     {

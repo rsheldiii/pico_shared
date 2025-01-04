@@ -548,17 +548,7 @@ namespace Frens
                 for (int line = startLine; line < SCREENHEIGHT - endLine; ++line)
                 {
                     uint8_t *current_line = &framebufferCore1[line * SCREENWIDTH];
-                    processScanLineFunction(current_line, buffer, SCREENWIDTH);
-
-                    // for (int kol = 0; kol < SCREENWIDTH; kol += 4)
-                    // {
-                    //     // buffer[kol] = NesPalette[current_line[kol]];
-                    //     // NesPalette[current_framebuffer[line * 320 + kol] & 0x3F];
-                    //     buffer[kol] = NesMenuPalette[current_line[kol]];
-                    //     buffer[kol + 1] = NesMenuPalette[current_line[kol + 1]];
-                    //     buffer[kol + 2] = NesMenuPalette[current_line[kol + 2]];
-                    //     buffer[kol + 3] = NesMenuPalette[current_line[kol + 3]];
-                    // }
+                    processScanLineFunction(line, current_line, buffer, SCREENWIDTH);
                     if (scaleMode8_7_)
                     {
                         dvi_->convertScanBuffer12bppScaled16_7(34, 32, 288 * 2, line, buffer, 640);
@@ -608,6 +598,8 @@ namespace Frens
         {
             mutex_enter_blocking(&framebuffer_mutex);
             Frens::processScanLineFunction = processScanLineFunction;
+            memset(framebuffer1, 255, SCREENWIDTH * SCREENHEIGHT);
+            memset(framebuffer2, 255, SCREENWIDTH * SCREENHEIGHT);
             mutex_exit(&framebuffer_mutex);
         }
     }
