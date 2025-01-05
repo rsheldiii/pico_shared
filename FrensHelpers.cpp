@@ -368,11 +368,18 @@ namespace Frens
             if (fr == FR_NO_FILE)
             {
                 printf("Start not pressed, flashing rom.\n");
-                size_t bufsize = 0x1000;                // Write 4k at a time, larger sizes will increases the risk of making XInput unresponsive. (Still happens sometimes)
+#if PICO_RP2040
+                size_t bufsize = 64 * 1024;
+#else
+                size_t bufsize = 128 * 1024;
+#endif
                 BYTE *buffer = (BYTE *)malloc(bufsize); // (BYTE *)InfoNes_GetPPURAM(&bufsize);
                 auto ofs = ROM_FILE_ADDR - XIP_BASE;
                 printf("Writing rom %s to flash %x\n", selectedRom, ofs);
                 UINT totalBytes = 0;
+#if 0
+                int blockCount=0;
+#endif
                 fr = f_open(&fil, selectedRom, FA_READ);
                 bool onOff = true;
                 UINT bytesRead;
@@ -404,6 +411,9 @@ namespace Frens
                                 }
                                 blinkLed(onOff);
                                 onOff = !onOff;
+#if 0
+                                printf("Writing block %d (%d bytes) to flash at %x\n", blockCount++, bytesRead, ofs);
+#endif
                                 // Disable interupts, erase, flash and enable interrupts
                                 uint32_t ints = save_and_disable_interrupts();
                                 flash_range_erase(ofs, bufsize);
@@ -750,7 +760,7 @@ namespace Frens
         return ok;
     }
 
-    void markFrameReadyForReendering()
+    void markFrameReadyForReendering(bool waitForFrameReady)
     {
         // switch framebuffers
         // Lock the mutex only to update shared state
@@ -772,9 +782,12 @@ namespace Frens
 #if 0
         int start = time_us_64();
 #endif
-        while ((use_framebuffer1 && framebuffer1_rendering) || (!use_framebuffer1 && framebuffer2_rendering))
+        if (waitForFrameReady)
         {
-            tight_loop_contents();
+            while ((use_framebuffer1 && framebuffer1_rendering) || (!use_framebuffer1 && framebuffer2_rendering))
+            {
+                tight_loop_contents();
+            }
         }
 #if 0
         int end = time_us_64();

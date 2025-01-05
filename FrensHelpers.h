@@ -75,7 +75,7 @@ namespace Frens
     uint64_t time_us();
     uint32_t time_ms();
     bool isFrameBufferUsed();
-    void markFrameReadyForReendering();
+    void markFrameReadyForReendering(bool waitForFrameReady = false);
     typedef void (*ProcessScanLineFunction)(int line, uint8_t *current_line, uint16_t *buffer, int screenWidth);
     void SetFrameBufferProcessScanLineFunction(ProcessScanLineFunction processScanLineFunction);
     //extern volatile ProcessScanLineFunction processScanLineFunction;
