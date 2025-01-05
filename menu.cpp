@@ -87,7 +87,7 @@ int Menu_LoadFrame()
     nespad_read_finish(); // Sets global nespad_state var
 #endif
     tuh_task();
-    Frens::markFrameReadyForReendering();
+    Frens::markFrameReadyForReendering(true);
     return count;
 }
 
