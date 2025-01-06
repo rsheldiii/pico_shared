@@ -87,7 +87,10 @@ int Menu_LoadFrame()
     nespad_read_finish(); // Sets global nespad_state var
 #endif
     tuh_task();
-    Frens::markFrameReadyForReendering(true);
+    if (Frens::isFrameBufferUsed())
+    {
+        Frens::markFrameReadyForReendering(true);
+    }
     return count;
 }
 
@@ -534,6 +537,20 @@ void __not_in_flash_func(processMenuScanLine)(int line, uint8_t *current_line, u
         buffer[kol + 3] = NesMenuPalette[current_line[kol + 3]];
     }
 }
+
+static void showLoadingScreen()
+{
+    if (Frens::isFrameBufferUsed())
+    {
+        ClearScreen(settings.bgcolor);
+        putText(SCREEN_COLS / 2 - 5, SCREEN_ROWS / 2, "Loading...", settings.fgcolor, settings.bgcolor);
+        DrawScreen(-1);
+        Menu_LoadFrame();
+        DrawScreen(-1);
+        Menu_LoadFrame();
+    }
+}
+
 // Global instances of local vars in romselect() some used in Lambda expression later on
 static char *selectedRomOrFolder;
 static bool errorInSavingRom = false;
@@ -737,6 +754,7 @@ void menu(const char *title, char *errorMessage, bool isFatal, bool showSplash, 
             }
             else if ((PAD1_Latch & START) == START && (PAD1_Latch & SELECT) != SELECT)
             {
+                showLoadingScreen();
                 // reboot and start emulator with currently loaded game
                 // Create a file /START indicating not to reflash the already flashed game
                 // The emulator will delete this file after loading the game
@@ -762,10 +780,8 @@ void menu(const char *title, char *errorMessage, bool isFatal, bool showSplash, 
             }
             else if ((PAD1_Latch & A) == A && selectedRomOrFolder)
             {
-
                 if (entries[index].IsDirectory)
                 {
-
                     romlister.list(selectedRomOrFolder);
                     settings.firstVisibleRowINDEX = 0;
                     settings.selectedRow = STARTROW;
@@ -780,10 +796,10 @@ void menu(const char *title, char *errorMessage, bool isFatal, bool showSplash, 
                 }
                 else
                 {
+                    showLoadingScreen();
                     FRESULT fr;
                     FIL fil;
                     char curdir[FF_MAX_LFN];
-
                     fr = f_getcwd(curdir, sizeof(curdir));
                     printf("Current dir: %s\n", curdir);
                     // Create file containing full path name currently loaded rom
