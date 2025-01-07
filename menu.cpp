@@ -527,14 +527,15 @@ void screenSaver()
     }
 }
 
-void __not_in_flash_func(processMenuScanLine)(int line, uint8_t *current_line, uint16_t *buffer, int physical_screenWidth)
+void __not_in_flash_func(processMenuScanLine)(int line, uint8_t *framebuffer, uint16_t *dvibuffer)
 {
-    for (int kol = 0; kol < physical_screenWidth; kol += 4)
+    auto current_line = &framebuffer[line * SCREENWIDTH];
+    for (int kol = 0; kol < SCREENWIDTH; kol += 4)
     {
-        buffer[kol] = NesMenuPalette[current_line[kol]];
-        buffer[kol + 1] = NesMenuPalette[current_line[kol + 1]];
-        buffer[kol + 2] = NesMenuPalette[current_line[kol + 2]];
-        buffer[kol + 3] = NesMenuPalette[current_line[kol + 3]];
+        dvibuffer[kol] = NesMenuPalette[current_line[kol]];
+        dvibuffer[kol + 1] = NesMenuPalette[current_line[kol + 1]];
+        dvibuffer[kol + 2] = NesMenuPalette[current_line[kol + 2]];
+        dvibuffer[kol + 3] = NesMenuPalette[current_line[kol + 3]];
     }
 }
 
