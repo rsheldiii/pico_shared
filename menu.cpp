@@ -560,7 +560,7 @@ static char *globalErrorMessage;
 void menu(const char *title, char *errorMessage, bool isFatal, bool showSplash, const char *allowedExtensions)
 {
     // Use the entire screen resolution of 320x240 pixels. This makes a 40x30 screen with 8x8 font possible.
-    scaleMode8_7_ = Frens::applyScreenMode(ScreenMode::MAX);
+    scaleMode8_7_ = Frens::applyScreenMode(ScreenMode::NOSCANLINE_1_1);
     dvi_->getBlankSettings().top = 0;
     dvi_->getBlankSettings().bottom = 0;
 

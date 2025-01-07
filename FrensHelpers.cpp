@@ -305,11 +305,11 @@ namespace Frens
             scanLine = false;
             printf("ScreenMode::NOSCANLINE_8_7\n");
             break;
-        case ScreenMode::MAX:
-            scaleMode8_7_ = false;
-            scanLine = false;
-            printf("ScreenMode::MAX\n");
-            break;
+        // case ScreenMode::MAX:
+        //     scaleMode8_7_ = false;
+        //     scanLine = false;
+        //     printf("ScreenMode::MAX\n");
+        //     break;
         }
 
         dvi_->setScanLine(scanLine);
