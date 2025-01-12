@@ -22,6 +22,9 @@
 #include "pico/cyw43_arch.h"
 #endif
 
+#ifndef DVIAUDIOFREQ
+#define DVIAUDIOFREQ 44100
+#endif
 std::unique_ptr<dvi::DVI> dvi_;
 util::ExclusiveProc exclProc_;
 char ErrorMessage[ERRORMESSAGESIZE];
@@ -675,7 +678,8 @@ namespace Frens
         dvi_ = std::make_unique<dvi::DVI>(pio0, &DVICONFIG,
                                           dvi::getTiming640x480p60Hz());
         //    dvi_->setAudioFreq(48000, 25200, 6144);
-        dvi_->setAudioFreq(44100, 28000, 6272);
+        dvi_->setAudioFreq(DVIAUDIOFREQ, 28000, 6272);
+        //dvi_->setAudioFreq(53267, 28000, 6272);
 
         dvi_->allocateAudioBuffer(audioBufferSize);
         //    dvi_->setExclusiveProc(&exclProc_);
