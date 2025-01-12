@@ -560,7 +560,7 @@ namespace Frens
                 // printf("Core 1: Rendering frame %s %d\n", current_framebuffer == framebuffer1 ? "framebuffer1" : "framebuffer2", frame++);
                 for (int line = startLine; line < SCREENHEIGHT - endLine; ++line)
                 {
-                    processScanLineFunction(line, framebufferCore1, buffer);
+                    processScanLineFunction(line - startLine, framebufferCore1, buffer);
                     if (scaleMode8_7_)
                     {
                         dvi_->convertScanBuffer12bppScaled16_7(34, 32, 288 * 2, line, buffer, 640);
