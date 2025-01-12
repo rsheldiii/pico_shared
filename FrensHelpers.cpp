@@ -738,7 +738,7 @@ namespace Frens
             }
         }
         usingFramebuffer = useFrameBuffer;
-        if (useFrameBuffer)
+        if (usingFramebuffer)
         {
             framebuffer1 = (uint8_t *)malloc(SCREENWIDTH * SCREENHEIGHT);
             framebuffer2 = (uint8_t *)malloc(SCREENWIDTH * SCREENHEIGHT);
@@ -751,7 +751,7 @@ namespace Frens
             mutex_init(&framebuffer_mutex);
         }
         initDVandAudio(marginTop, marginBottom, audiobufferSize);
-        if (useFrameBuffer)
+        if (usingFramebuffer)
         {
             multicore_launch_core1(coreFB_main);
         }
