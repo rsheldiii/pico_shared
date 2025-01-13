@@ -7,7 +7,9 @@
 #include <stdio.h>
 #include "xinput_host.h"
 #include "gamepad.h"
-
+#ifndef ABSWAPPED
+#define ABSWAPPED 1
+#endif
 #ifdef __cplusplus
 extern "C"
 {
@@ -309,8 +311,14 @@ extern "C"
                 gp.axis[0] = r->stickL[0];
                 gp.axis[1] = r->stickL[1];
                 gp.buttons =
+#if ABSWAPPED == 1
                     (r->buttons1 & DS4Report::Button1::CROSS ? io::GamePadState::Button::B : 0) |
                     (r->buttons1 & DS4Report::Button1::CIRCLE ? io::GamePadState::Button::A : 0) |
+#else
+
+                    (r->buttons1 & DS4Report::Button1::CIRCLE ? io::GamePadState::Button::B : 0) |
+                    (r->buttons1 & DS4Report::Button1::CROSS ? io::GamePadState::Button::A : 0) |   
+#endif
                     (r->buttons1 & DS4Report::Button1::TRIANGLE ? io::GamePadState::Button::X : 0) |
                     (r->buttons1 & DS4Report::Button1::SQUARE ? io::GamePadState::Button::Y : 0) |
                     (r->buttons2 & DS4Report::Button2::SHARE ? io::GamePadState::Button::SELECT : 0) |
@@ -345,8 +353,13 @@ extern "C"
                 gp.axis[0] = r->stickL[0];
                 gp.axis[1] = r->stickL[1];
                 gp.buttons =
+#if ABSWAPPED == 1
                     (buttons & DS5Report::Button::CROSS ? io::GamePadState::Button::B : 0) |
                     (buttons & DS5Report::Button::CIRCLE ? io::GamePadState::Button::A : 0) |
+#else
+                    (buttons & DS5Report::Button::CIRCLE ? io::GamePadState::Button::B : 0) |
+                    (buttons & DS5Report::Button::CROSS ? io::GamePadState::Button::A : 0) |
+#endif
                     (buttons & DS5Report::Button::TRIANGLE ? io::GamePadState::Button::X : 0) |
                     (buttons & DS5Report::Button::SQUARE ? io::GamePadState::Button::Y : 0) |
                     (buttons & (DS5Report::Button::SHARE | DS5Report::Button::TPAD) ? io::GamePadState::Button::SELECT : 0) |
@@ -394,8 +407,13 @@ extern "C"
                 auto &gp = io::getCurrentGamePadState(0);
                 // Swap A and B because the button layout is different from NES controller
                 gp.buttons =
+#if ABSWAPPED == 1
                     (r->byte6 & GenesisMiniReport::Button::B ? io::GamePadState::Button::A : 0) |
                     (r->byte6 & GenesisMiniReport::Button::A ? io::GamePadState::Button::B : 0) |
+#else
+                    (r->byte6 & GenesisMiniReport::Button::A ? io::GamePadState::Button::A : 0) |
+                    (r->byte6 & GenesisMiniReport::Button::B ? io::GamePadState::Button::B : 0) |
+#endif
                     (r->byte7 & GenesisMiniReport::Button::C ? io::GamePadState::Button::SELECT : 0) |
                     (r->byte7 & GenesisMiniReport::Button::START ? io::GamePadState::Button::START : 0) |
                     (r->byte5 == GenesisMiniReport::Button::UP ? io::GamePadState::Button::UP : 0) |
@@ -417,8 +435,13 @@ extern "C"
                 auto r = reinterpret_cast<const PSClassicReport *>(report);
                 auto &gp = io::getCurrentGamePadState(0);
                 gp.buttons =
+#if ABSWAPPED == 1
                     (r->buttons & PSClassicReport::Button::Cross ? io::GamePadState::Button::B : 0) |
                     (r->buttons & PSClassicReport::Button::Circle ? io::GamePadState::Button::A : 0);
+#else
+                    (r->buttons & PSClassicReport::Button::Circle ? io::GamePadState::Button::B : 0) |
+                    (r->buttons & PSClassicReport::Button::Cross ? io::GamePadState::Button::A : 0);
+#endif
 
                 switch (r->hat)
                 {
@@ -664,11 +687,17 @@ extern "C"
 
                 auto &gp = io::getCurrentGamePadState(0);
                 gp.buttons = 0;
+#if ABSWAPPED == 1
                 if (p->wButtons & XINPUT_GAMEPAD_A)
                     gp.buttons |= io::GamePadState::Button::B;
                 if (p->wButtons & XINPUT_GAMEPAD_B)
                     gp.buttons |= io::GamePadState::Button::A;
-
+#else
+                if (p->wButtons & XINPUT_GAMEPAD_A)
+                    gp.buttons |= io::GamePadState::Button::A;
+                if (p->wButtons & XINPUT_GAMEPAD_B)
+                    gp.buttons |= io::GamePadState::Button::B;
+#endif
                 if (p->wButtons & XINPUT_GAMEPAD_DPAD_UP)
                     gp.buttons |= io::GamePadState::Button::UP;
                 if (p->wButtons & XINPUT_GAMEPAD_DPAD_DOWN)
