@@ -38,6 +38,7 @@ extern bool scaleMode8_7_;
 
 extern char __flash_binary_start;  // defined in linker script
 extern char __flash_binary_end; 
+extern int abSwapped;      // defined in hid_app.cpp
 
 namespace Frens
 {

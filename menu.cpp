@@ -566,6 +566,8 @@ void menu(const char *title, char *errorMessage, bool isFatal, bool showSplash, 
 
     Frens::SetFrameBufferProcessScanLineFunction(processMenuScanLine);
 
+    abSwapped = 1;  // Swap A and B buttons, so menu is consistent accrross different emilators
+
     //
     menutitle = (char *)title;
     int totalFrames = -1;
