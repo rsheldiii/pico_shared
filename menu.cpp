@@ -910,7 +910,8 @@ void menu(const char *title, char *errorMessage, bool isFatal, bool showSplash, 
     watchdog_enable(100, 1);
     while (1)
     {
-        printf("Waiting for reboot...\n");
+        tight_loop_contents();
+        // printf("Waiting for reboot...\n");
     };
     // Never return
 }
