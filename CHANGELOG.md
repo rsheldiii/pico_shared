@@ -1,5 +1,8 @@
 # Release notes
 
+## 19/01/2025
+
+- To properly use the AliExpress SNES controller you need to press Y to enable the X-button. This is now documented in the README.md.
 
 ## 01/01/2025
 
