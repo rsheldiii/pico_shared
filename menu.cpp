@@ -357,11 +357,26 @@ void DrawScreen(int selectedRow)
 {
     const char *spaces = "                   ";
     char tmpstr[sizeof(connectedGamePadName) + 4];
+    char s[SCREEN_COLS + 1];
     if (selectedRow != -1)
     {
         putText(SCREEN_COLS / 2 - strlen(spaces) / 2, SCREEN_ROWS - 1, spaces, settings.bgcolor, settings.bgcolor);
         snprintf(tmpstr, sizeof(tmpstr), "- %s -", connectedGamePadName[0] != 0 ? connectedGamePadName : "No USB GamePad");
         putText(SCREEN_COLS / 2 - strlen(tmpstr) / 2, SCREEN_ROWS - 1, tmpstr, CBLUE, CWHITE);
+        if (strcmp(connectedGamePadName, "Dual Shock 4") == 0 || strcmp(connectedGamePadName, "Dual Sense") == 0 || strcmp(connectedGamePadName, "PSClassic") == 0)
+        {
+            strcpy(s, "O Select, X Back"); 
+        } else if (strcmp(connectedGamePadName, "XInput") == 0 || strncmp(connectedGamePadName, "Genesis", 7) == 0)
+        {
+            strcpy(s, "B Select, A Back");
+        } else if (strcmp(connectedGamePadName, "Keyboard") == 0)
+        {
+            strcpy(s, "X, Select, Z Back");
+        }else
+        {
+            strcpy(s, "A Select, B Back");
+        }
+       putText(1, ENDROW + 2, s, settings.fgcolor, settings.bgcolor);
     }
 
     for (auto line = 0; line < 240; line++)
@@ -405,9 +420,9 @@ void displayRoms(Frens::RomLister romlister, int startIndex)
     {
         putText(i, ENDROW + 1, "-", settings.fgcolor, settings.bgcolor);
     }
-    strcpy(s, "A Select, B Back");
-
-    putText(1, ENDROW + 2, s, settings.fgcolor, settings.bgcolor);
+    
+    // strcpy(s, "A Select, B Back");
+    // putText(1, ENDROW + 2, s, settings.fgcolor, settings.bgcolor);
     putText(SCREEN_COLS - strlen(PICOHWNAME_) - 1, ENDROW + 2, PICOHWNAME_, settings.fgcolor, settings.bgcolor);
     putText(SCREEN_COLS - strlen(SWVERSION) - 1, SCREEN_ROWS - 1, SWVERSION, settings.fgcolor, settings.bgcolor);
 
