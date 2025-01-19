@@ -11,6 +11,7 @@
 #define ABSWAPPED 1
 #endif
 int abSwapped = ABSWAPPED;
+int isManta = 0; // 1 NES, 2 SNES
 #ifdef __cplusplus
 extern "C"
 {
@@ -166,10 +167,10 @@ extern "C"
             struct Button
             {
                 inline static constexpr int A = 0b00100000;
-                inline static constexpr int SNESB = 0b01000000;
+                inline static constexpr int B = 0b01000000;
                 inline static constexpr int X = 0b00010000;
-                inline static constexpr int NESB = X; // B Button on NES controller is X on SNES controller
                 inline static constexpr int Y = 0b10000000;
+                inline static constexpr int NESB = X; // B Button on NES controller is X on SNES controller
                 inline static constexpr int SELECT = 0b00010000;
                 inline static constexpr int START = 0b00100000;
                 inline static constexpr int UP = 0b00000000;
@@ -203,10 +204,10 @@ extern "C"
             {
                 inline static constexpr int ButtonsIdle = 0x00;
                 inline static constexpr int HatIdle = 0b00010100;
-                inline static constexpr int Square = 0x01;       // to be verified
+                inline static constexpr int Square = 0x08;
                 inline static constexpr int Circle = 0x02;
-                inline static constexpr int Cross = 0x04;       
-                inline static constexpr int Triangle = 0x08;    // to be verified
+                inline static constexpr int Cross = 0x04;
+                inline static constexpr int Triangle = 0x01;
                 inline static constexpr int SELECT = 0b00010101;
                 inline static constexpr int START = 0b00010110;
                 inline static constexpr int UP = 0b00000100;
@@ -227,6 +228,7 @@ extern "C"
     void tuh_hid_mount_cb(uint8_t dev_addr, uint8_t instance, uint8_t const *desc_report, uint16_t desc_len)
     {
         uint16_t vid, pid;
+        isManta = 0;
         auto &gp = io::getCurrentGamePadState(0);
         tuh_vid_pid_get(dev_addr, &vid, &pid);
 
@@ -243,7 +245,9 @@ extern "C"
         else if (isMantaPad(vid, pid))
         {
             printf("MantaPad detected - device address = %d, instance = %d is mounted - ", dev_addr, instance);
-            strcpy(gp.GamePadName, "Manta");
+            printf("Press Y to activate SNES mode\n");
+            isManta = 1;
+            strcpy(gp.GamePadName, "Manta NES");
         }
         else if (isGenesisMini(vid, pid))
         {
@@ -323,7 +327,7 @@ extern "C"
                     gp.buttons = (r->buttons1 & DS4Report::Button1::CROSS ? io::GamePadState::Button::A : 0) |
                                  (r->buttons1 & DS4Report::Button1::CIRCLE ? io::GamePadState::Button::B : 0);
                 }
-                
+
                 gp.buttons = gp.buttons |
                              (r->buttons1 & DS4Report::Button1::TRIANGLE ? io::GamePadState::Button::X : 0) |
                              (r->buttons1 & DS4Report::Button1::SQUARE ? io::GamePadState::Button::Y : 0) |
@@ -392,16 +396,43 @@ extern "C"
             {
                 auto r = reinterpret_cast<const MantaPadReport *>(report);
                 auto &gp = io::getCurrentGamePadState(0);
-                gp.buttons =
-                    (r->byte6 & MantaPadReport::Button::A ? io::GamePadState::Button::A : 0) |
-                    (r->byte6 & MantaPadReport::Button::NESB ? io::GamePadState::Button::B : 0) |
-                    (r->byte6 & MantaPadReport::Button::SNESB ? io::GamePadState::Button::B : 0) |
-                    (r->byte7 & MantaPadReport::Button::START ? io::GamePadState::Button::START : 0) |
-                    (r->byte7 & MantaPadReport::Button::SELECT ? io::GamePadState::Button::SELECT : 0) |
-                    (r->byte2 == MantaPadReport::Button::UP ? io::GamePadState::Button::UP : 0) |
-                    (r->byte2 == MantaPadReport::Button::DOWN ? io::GamePadState::Button::DOWN : 0) |
-                    (r->byte1 == MantaPadReport::Button::LEFT ? io::GamePadState::Button::LEFT : 0) |
-                    (r->byte1 == MantaPadReport::Button::RIGHT ? io::GamePadState::Button::RIGHT : 0);
+                // When using AlieExpress SNES usb controller, activate SNES mode by pressing Y
+                if (r->byte6 & MantaPadReport::Button::Y)
+                {
+                    isManta = 2;
+                    strcpy(gp.GamePadName, "Manta SNES");
+                    printf("MantaPad SNES mode activated\n");
+                }
+                // printf("MantaPad report: %02x %02x %02x %02x %02x %02x %02x %02x\n",
+                //        r->byte1, r->byte2, r->byte3, r->byte4, r->byte5, r->byte6, r->byte7, r->byte8);
+                if (abSwapped)
+                {
+                    gp.buttons =
+                        (r->byte6 & MantaPadReport::Button::A ? io::GamePadState::Button::A : 0) |
+                        ((isManta == 1 && r->byte6 & MantaPadReport::Button::NESB) ? io::GamePadState::Button::B : 0) |
+                        ((isManta == 2 && r->byte6 & MantaPadReport::Button::B) ? io::GamePadState::Button::B : 0) |
+                        ((isManta == 2 && r->byte6 & MantaPadReport::Button::X) ? io::GamePadState::Button::X : 0) |
+                        (r->byte7 & MantaPadReport::Button::START ? io::GamePadState::Button::START : 0) |
+                        (r->byte7 & MantaPadReport::Button::SELECT ? io::GamePadState::Button::SELECT : 0) |
+                        (r->byte2 == MantaPadReport::Button::UP ? io::GamePadState::Button::UP : 0) |
+                        (r->byte2 == MantaPadReport::Button::DOWN ? io::GamePadState::Button::DOWN : 0) |
+                        (r->byte1 == MantaPadReport::Button::LEFT ? io::GamePadState::Button::LEFT : 0) |
+                        (r->byte1 == MantaPadReport::Button::RIGHT ? io::GamePadState::Button::RIGHT : 0);
+                }
+                else
+                {
+                    gp.buttons =
+                        (r->byte6 & MantaPadReport::Button::A ? io::GamePadState::Button::B : 0) |
+                        ((isManta == 1 && r->byte6 & MantaPadReport::Button::NESB) ? io::GamePadState::Button::A : 0) |
+                        ((isManta == 2 && r->byte6 & MantaPadReport::Button::B) ? io::GamePadState::Button::A : 0) |
+                        ((isManta == 2 && r->byte6 & MantaPadReport::Button::X) ? io::GamePadState::Button::X : 0) |
+                        (r->byte7 & MantaPadReport::Button::START ? io::GamePadState::Button::START : 0) |
+                        (r->byte7 & MantaPadReport::Button::SELECT ? io::GamePadState::Button::SELECT : 0) |
+                        (r->byte2 == MantaPadReport::Button::UP ? io::GamePadState::Button::UP : 0) |
+                        (r->byte2 == MantaPadReport::Button::DOWN ? io::GamePadState::Button::DOWN : 0) |
+                        (r->byte1 == MantaPadReport::Button::LEFT ? io::GamePadState::Button::LEFT : 0) |
+                        (r->byte1 == MantaPadReport::Button::RIGHT ? io::GamePadState::Button::RIGHT : 0);
+                }
                 gp.flagConnected(true);
             }
             else
@@ -572,7 +603,7 @@ extern "C"
                                 gp.buttons |= io::GamePadState::Button::START;
                                 break;
                             case HID_KEY_Z:
-                                gp.buttons |= (abSwapped ?  io::GamePadState::Button::B : io::GamePadState::Button::A);
+                                gp.buttons |= (abSwapped ? io::GamePadState::Button::B : io::GamePadState::Button::A);
                                 break;
                             case HID_KEY_X:
                                 gp.buttons |= (abSwapped ? io::GamePadState::Button::A : io::GamePadState::Button::B);
@@ -680,7 +711,7 @@ extern "C"
     {
         const xinput_gamepad_t *p = &xid_itf->pad;
         const char *type_str;
-
+        isManta = 0;
         if (xid_itf->last_xfer_result == XFER_RESULT_SUCCESS)
         {
             switch (xid_itf->type)
@@ -706,7 +737,6 @@ extern "C"
 
                 auto &gp = io::getCurrentGamePadState(0);
                 gp.buttons = 0;
-                
 
                 if (p->wButtons & XINPUT_GAMEPAD_A)
                     gp.buttons |= (abSwapped ? io::GamePadState::Button::B : io::GamePadState::Button::A);
