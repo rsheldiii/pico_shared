@@ -401,7 +401,7 @@ extern "C"
                 {
                     isManta = 2;
                     strcpy(gp.GamePadName, "Manta SNES");
-                    printf("MantaPad SNES mode activated\n");
+                    //printf("MantaPad SNES mode activated\n");
                 }
                 // printf("MantaPad report: %02x %02x %02x %02x %02x %02x %02x %02x\n",
                 //        r->byte1, r->byte2, r->byte3, r->byte4, r->byte5, r->byte6, r->byte7, r->byte8);
