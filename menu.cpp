@@ -21,9 +21,8 @@
 #include "font_8x8.h"
 #include "settings.h"
 
-
 #define CC(x) (((x >> 1) & 15) | (((x >> 6) & 15) << 4) | (((x >> 11) & 15) << 8))
-const WORD NesMenuPalette[64] = {
+const __UINT16_TYPE__ NesMenuPalette[64] = {
     CC(0x39ce), CC(0x1071), CC(0x0015), CC(0x2013), CC(0x440e), CC(0x5402), CC(0x5000), CC(0x3c20),
     CC(0x20a0), CC(0x0100), CC(0x0140), CC(0x00e2), CC(0x0ceb), CC(0x0000), CC(0x0000), CC(0x0000),
     CC(0x5ef7), CC(0x01dd), CC(0x10fd), CC(0x401e), CC(0x5c17), CC(0x700b), CC(0x6ca0), CC(0x6521),
@@ -32,17 +31,19 @@ const WORD NesMenuPalette[64] = {
     CC(0x7ae7), CC(0x4342), CC(0x2769), CC(0x2ff3), CC(0x03bb), CC(0x0000), CC(0x0000), CC(0x0000),
     CC(0x7fff), CC(0x579f), CC(0x635f), CC(0x6b3f), CC(0x7f1f), CC(0x7f1b), CC(0x7ef6), CC(0x7f75),
     CC(0x7f94), CC(0x73f4), CC(0x57d7), CC(0x5bf9), CC(0x4ffe), CC(0x0000), CC(0x0000), CC(0x0000)};
-int NesMenuPaletteItems  = sizeof(NesMenuPalette) / sizeof(NesMenuPalette[0]);
+int NesMenuPaletteItems = sizeof(NesMenuPalette) / sizeof(NesMenuPalette[0]);
 
 static char connectedGamePadName[sizeof(io::GamePadState::GamePadName)];
-
+static bool useFrameBuffer = false;
 #define SCREENBUFCELLS SCREEN_ROWS *SCREEN_COLS
 charCell *screenBuffer;
 
 #define LONG_PRESS_TRESHOLD (500)
-#define REPEAT_DELAY  (40)
+#define REPEAT_DELAY (40)
 
 static WORD *WorkLineRom = nullptr;
+static BYTE *WorkLineRom8 = nullptr;
+
 void RomSelect_SetLineBuffer(WORD *p, WORD size)
 {
     WorkLineRom = p;
@@ -59,10 +60,9 @@ static constexpr int B = 1 << 1;
 static constexpr int X = 1 << 8;
 static constexpr int Y = 1 << 9;
 
-
 void resetColors(int prevfgColor, int prevbgColor)
 {
-   for (auto i = 0; i < SCREENBUFCELLS; i++)
+    for (auto i = 0; i < SCREENBUFCELLS; i++)
     {
         if (screenBuffer[i].fgcolor == prevfgColor)
         {
@@ -87,6 +87,10 @@ int Menu_LoadFrame()
     nespad_read_finish(); // Sets global nespad_state var
 #endif
     tuh_task();
+    if (Frens::isFrameBufferUsed())
+    {
+        Frens::markFrameReadyForReendering(true);
+    }
     return count;
 }
 
@@ -103,8 +107,7 @@ void RomSelect_PadState(DWORD *pdwPad1, bool ignorepushed = false)
     static DWORD prevButtons{};
     auto &gp = io::getCurrentGamePadState(0);
     strcpy(connectedGamePadName, gp.GamePadName);
-    
-   
+
     int v = (gp.buttons & io::GamePadState::Button::LEFT ? LEFT : 0) |
             (gp.buttons & io::GamePadState::Button::RIGHT ? RIGHT : 0) |
             (gp.buttons & io::GamePadState::Button::UP ? UP : 0) |
@@ -116,8 +119,7 @@ void RomSelect_PadState(DWORD *pdwPad1, bool ignorepushed = false)
             (gp.buttons & io::GamePadState::Button::X ? X : 0) |
             (gp.buttons & io::GamePadState::Button::Y ? Y : 0) |
             0;
-   
-   
+
 #if NES_PIN_CLK != -1
     v |= nespad_states[0];
 #endif
@@ -129,12 +131,15 @@ void RomSelect_PadState(DWORD *pdwPad1, bool ignorepushed = false)
 #endif
     delta = currentTime - previousTime;
     previousTime = currentTime;
-    if (v & (UP | DOWN | LEFT | RIGHT)) {
+    if (v & (UP | DOWN | LEFT | RIGHT))
+    {
         longpressTreshold += delta;
-    } else {
+    }
+    else
+    {
         longpressTreshold = 0;
     }
-  
+
     *pdwPad1 = 0;
 
     unsigned long pushed;
@@ -151,7 +156,7 @@ void RomSelect_PadState(DWORD *pdwPad1, bool ignorepushed = false)
     {
         resetScreenSaver = true;
         if (pushed & UP)
-        {   
+        {
             settings.fgcolor++;
             if (settings.fgcolor >= NesMenuPaletteItems)
             {
@@ -161,15 +166,16 @@ void RomSelect_PadState(DWORD *pdwPad1, bool ignorepushed = false)
             resetColors(prevFgColor, prevBgColor);
         }
         else if (pushed & DOWN)
-        {      
+        {
             settings.fgcolor--;
             if (settings.fgcolor < 0)
             {
-                settings.fgcolor = NesMenuPaletteItems -1 ;
-            } 
-            printf("fgcolor: %d\n", settings.fgcolor);  
+                settings.fgcolor = NesMenuPaletteItems - 1;
+            }
+            printf("fgcolor: %d\n", settings.fgcolor);
             resetColors(prevFgColor, prevBgColor);
-        } else if (pushed & LEFT)
+        }
+        else if (pushed & LEFT)
         {
             settings.bgcolor++;
             if (settings.bgcolor >= NesMenuPaletteItems)
@@ -178,39 +184,46 @@ void RomSelect_PadState(DWORD *pdwPad1, bool ignorepushed = false)
             }
             printf("bgcolor: %d\n", settings.bgcolor);
             resetColors(prevFgColor, prevBgColor);
-        } else if (pushed & RIGHT)
+        }
+        else if (pushed & RIGHT)
         {
             settings.bgcolor--;
             if (settings.bgcolor < 0)
             {
-                settings.bgcolor = NesMenuPaletteItems -1 ;
+                settings.bgcolor = NesMenuPaletteItems - 1;
             }
             printf("bgcolor: %d\n", settings.bgcolor);
             resetColors(prevFgColor, prevBgColor);
-        } else if ( pushed & A ) {
+        }
+        else if (pushed & A)
+        {
             printf("Saving colors to settings file.\n");
             Frens::savesettings();
-        } else if ( pushed & B ) {
-            printf("Resetting colors to default.\n");   
+        }
+        else if (pushed & B)
+        {
+            printf("Resetting colors to default.\n");
             // reset colors to default
             settings.fgcolor = DEFAULT_FGCOLOR;
             settings.bgcolor = DEFAULT_BGCOLOR;
-            resetColors(prevFgColor, prevBgColor);    
-            Frens::savesettings();    
-        } 
-       
+            resetColors(prevFgColor, prevBgColor);
+            Frens::savesettings();
+        }
+
         v = 0;
     }
-   
+
     if (pushed || longpressTreshold > LONG_PRESS_TRESHOLD)
     {
-        if ( ! pushed) {
-            if ( longpressTreshold > LONG_PRESS_TRESHOLD) {
+        if (!pushed)
+        {
+            if (longpressTreshold > LONG_PRESS_TRESHOLD)
+            {
                 longpressTreshold = LONG_PRESS_TRESHOLD - REPEAT_DELAY;
-            } 
+            }
         }
         *pdwPad1 = v;
-        if ( v != 0)
+        if (v != 0)
         {
             resetScreenSaver = true;
         }
@@ -220,7 +233,15 @@ void RomSelect_PadState(DWORD *pdwPad1, bool ignorepushed = false)
 void RomSelect_DrawLine(int line, int selectedRow)
 {
     WORD fgcolor, bgcolor;
-    memset(WorkLineRom, 0, 640);
+    bool useFrameBuffer = Frens::isFrameBufferUsed();
+    if (useFrameBuffer)
+    {
+        memset(WorkLineRom8, 0, SCREENWIDTH);
+    }
+    else
+    {
+        memset(WorkLineRom, 0, SCREENWIDTH * sizeof(WORD));
+    }
 
     for (auto i = 0; i < SCREEN_COLS; ++i)
     {
@@ -229,13 +250,29 @@ void RomSelect_DrawLine(int line, int selectedRow)
         uint c = screenBuffer[charIndex].charvalue;
         if (row == selectedRow)
         {
-            fgcolor = NesMenuPalette[screenBuffer[charIndex].bgcolor];
-            bgcolor = NesMenuPalette[screenBuffer[charIndex].fgcolor];
+            if (useFrameBuffer)
+            {
+                fgcolor = screenBuffer[charIndex].bgcolor;
+                bgcolor = screenBuffer[charIndex].fgcolor;
+            }
+            else
+            {
+                fgcolor = NesMenuPalette[screenBuffer[charIndex].bgcolor];
+                bgcolor = NesMenuPalette[screenBuffer[charIndex].fgcolor];
+            }
         }
         else
         {
-            fgcolor = NesMenuPalette[screenBuffer[charIndex].fgcolor];
-            bgcolor = NesMenuPalette[screenBuffer[charIndex].bgcolor];
+            if (useFrameBuffer)
+            {
+                fgcolor = screenBuffer[charIndex].fgcolor;
+                bgcolor = screenBuffer[charIndex].bgcolor;
+            }
+            else
+            {
+                fgcolor = NesMenuPalette[screenBuffer[charIndex].fgcolor];
+                bgcolor = NesMenuPalette[screenBuffer[charIndex].bgcolor];
+            }
         }
 
         int rowInChar = line % FONT_CHAR_HEIGHT;
@@ -244,14 +281,35 @@ void RomSelect_DrawLine(int line, int selectedRow)
         {
             if (fontSlice & 1)
             {
-                *WorkLineRom = fgcolor;
+                if (useFrameBuffer)
+                {
+                    *WorkLineRom8 = fgcolor;
+                }
+                else
+                {
+                    *WorkLineRom = fgcolor;
+                }
             }
             else
             {
-                *WorkLineRom = bgcolor;
+                if (useFrameBuffer)
+                {
+                    *WorkLineRom8 = bgcolor;
+                }
+                else
+                {
+                    *WorkLineRom = bgcolor;
+                }
             }
             fontSlice >>= 1;
-            WorkLineRom++;
+            if (useFrameBuffer)
+            {
+                WorkLineRom8++;
+            }
+            else
+            {
+                WorkLineRom++;
+            }
         }
     }
     return;
@@ -259,10 +317,18 @@ void RomSelect_DrawLine(int line, int selectedRow)
 
 void drawline(int scanline, int selectedRow)
 {
-    auto b = dvi_->getLineBuffer();
-    WorkLineRom = b->data();
-    RomSelect_DrawLine(scanline, selectedRow);
-    dvi_->setLineBuffer(scanline, b);
+    if (Frens::isFrameBufferUsed())
+    {
+        WorkLineRom8 = &Frens::framebufferCore0[scanline * SCREENWIDTH];
+        RomSelect_DrawLine(scanline, selectedRow);
+    }
+    else
+    {
+        auto b = dvi_->getLineBuffer();
+        WorkLineRom = b->data();
+        RomSelect_DrawLine(scanline, selectedRow);
+        dvi_->setLineBuffer(scanline, b);
+    }
 }
 
 void putText(int x, int y, const char *text, int fgcolor, int bgcolor)
@@ -291,13 +357,28 @@ void DrawScreen(int selectedRow)
 {
     const char *spaces = "                   ";
     char tmpstr[sizeof(connectedGamePadName) + 4];
+    char s[SCREEN_COLS + 1];
     if (selectedRow != -1)
     {
         putText(SCREEN_COLS / 2 - strlen(spaces) / 2, SCREEN_ROWS - 1, spaces, settings.bgcolor, settings.bgcolor);
-        snprintf(tmpstr,sizeof(tmpstr), "- %s -", connectedGamePadName[0] != 0 ? connectedGamePadName : "No USB GamePad");
+        snprintf(tmpstr, sizeof(tmpstr), "- %s -", connectedGamePadName[0] != 0 ? connectedGamePadName : "No USB GamePad");
         putText(SCREEN_COLS / 2 - strlen(tmpstr) / 2, SCREEN_ROWS - 1, tmpstr, CBLUE, CWHITE);
+        if (strcmp(connectedGamePadName, "Dual Shock 4") == 0 || strcmp(connectedGamePadName, "Dual Sense") == 0 || strcmp(connectedGamePadName, "PSClassic") == 0)
+        {
+            strcpy(s, "O Select, X Back"); 
+        } else if (strcmp(connectedGamePadName, "XInput") == 0 || strncmp(connectedGamePadName, "Genesis", 7) == 0)
+        {
+            strcpy(s, "B Select, A Back");
+        } else if (strcmp(connectedGamePadName, "Keyboard") == 0)
+        {
+            strcpy(s, "X, Select, Z Back");
+        }else
+        {
+            strcpy(s, "A Select, B Back");
+        }
+       putText(1, ENDROW + 2, s, settings.fgcolor, settings.bgcolor);
     }
-   
+
     for (auto line = 0; line < 240; line++)
     {
         drawline(line, selectedRow);
@@ -314,7 +395,6 @@ void ClearScreen(int color)
     }
 }
 
-
 char *menutitle = nullptr;
 
 void displayRoms(Frens::RomLister romlister, int startIndex)
@@ -324,9 +404,9 @@ void displayRoms(Frens::RomLister romlister, int startIndex)
     auto y = STARTROW;
     auto entries = romlister.GetEntries();
     ClearScreen(settings.bgcolor);
-    snprintf(s, sizeof(s), "- %s -",  menutitle);
+    snprintf(s, sizeof(s), "- %s -", menutitle);
     putText(SCREEN_COLS / 2 - strlen(s) / 2, 0, s, settings.fgcolor, settings.bgcolor);
-    
+
     strcpy(s, "Choose a rom to play:");
     putText(SCREEN_COLS / 2 - strlen(s) / 2, 1, s, settings.fgcolor, settings.bgcolor);
     // strcpy(s, "---------------------");
@@ -340,14 +420,14 @@ void displayRoms(Frens::RomLister romlister, int startIndex)
     {
         putText(i, ENDROW + 1, "-", settings.fgcolor, settings.bgcolor);
     }
-    strcpy(s, "A Select, B Back");
-
-    putText(1, ENDROW + 2, s, settings.fgcolor, settings.bgcolor);
+    
+    // strcpy(s, "A Select, B Back");
+    // putText(1, ENDROW + 2, s, settings.fgcolor, settings.bgcolor);
     putText(SCREEN_COLS - strlen(PICOHWNAME_) - 1, ENDROW + 2, PICOHWNAME_, settings.fgcolor, settings.bgcolor);
     putText(SCREEN_COLS - strlen(SWVERSION) - 1, SCREEN_ROWS - 1, SWVERSION, settings.fgcolor, settings.bgcolor);
-  
+
     // putText(SCREEN_COLS / 2 - strlen(picoType()) / 2, SCREEN_ROWS - 2, picoType(), fgcolor, bgcolor);
-    
+
     for (auto index = startIndex; index < romlister.Count(); index++)
     {
         if (y <= ENDROW)
@@ -408,12 +488,12 @@ void showSplashScreen()
     int startFrame = -1;
     while (true)
     {
+        DrawScreen(-1);
         auto frameCount = Menu_LoadFrame();
         if (startFrame == -1)
         {
             startFrame = frameCount;
         }
-        DrawScreen(-1);
         RomSelect_PadState(&PAD1_Latch);
         if (PAD1_Latch > 0 || (frameCount - startFrame) > 1000)
         {
@@ -461,6 +541,32 @@ void screenSaver()
         }
     }
 }
+
+void __not_in_flash_func(processMenuScanLine)(int line, uint8_t *framebuffer, uint16_t *dvibuffer)
+{
+    auto current_line = &framebuffer[line * SCREENWIDTH];
+    for (int kol = 0; kol < SCREENWIDTH; kol += 4)
+    {
+        dvibuffer[kol] = NesMenuPalette[current_line[kol]];
+        dvibuffer[kol + 1] = NesMenuPalette[current_line[kol + 1]];
+        dvibuffer[kol + 2] = NesMenuPalette[current_line[kol + 2]];
+        dvibuffer[kol + 3] = NesMenuPalette[current_line[kol + 3]];
+    }
+}
+
+static void showLoadingScreen()
+{
+    if (Frens::isFrameBufferUsed())
+    {
+        ClearScreen(settings.bgcolor);
+        putText(SCREEN_COLS / 2 - 5, SCREEN_ROWS / 2, "Loading...", settings.fgcolor, settings.bgcolor);
+        DrawScreen(-1);
+        Menu_LoadFrame();
+        DrawScreen(-1);
+        Menu_LoadFrame();
+    }
+}
+
 // Global instances of local vars in romselect() some used in Lambda expression later on
 static char *selectedRomOrFolder;
 static bool errorInSavingRom = false;
@@ -469,9 +575,14 @@ static char *globalErrorMessage;
 void menu(const char *title, char *errorMessage, bool isFatal, bool showSplash, const char *allowedExtensions)
 {
     // Use the entire screen resolution of 320x240 pixels. This makes a 40x30 screen with 8x8 font possible.
-    scaleMode8_7_ = Frens::applyScreenMode(ScreenMode::MAX); 
+    scaleMode8_7_ = Frens::applyScreenMode(ScreenMode::NOSCANLINE_1_1);
     dvi_->getBlankSettings().top = 0;
     dvi_->getBlankSettings().bottom = 0;
+
+    Frens::SetFrameBufferProcessScanLineFunction(processMenuScanLine);
+
+    abSwapped = 1;  // Swap A and B buttons, so menu is consistent accrross different emilators
+
     //
     menutitle = (char *)title;
     int totalFrames = -1;
@@ -566,15 +677,16 @@ void menu(const char *title, char *errorMessage, bool isFatal, bool showSplash, 
                     if (settings.firstVisibleRowINDEX > 0)
                     {
                         settings.firstVisibleRowINDEX--;
-                    } else {
+                    }
+                    else
+                    {
                         settings.firstVisibleRowINDEX = romlister.Count() - PAGESIZE;
-                        settings.selectedRow = ENDROW;   
+                        settings.selectedRow = ENDROW;
                         if (settings.firstVisibleRowINDEX < 0)
                         {
                             settings.firstVisibleRowINDEX = 0;
                             settings.selectedRow = romlister.Count() + STARTROW - 1;
                         }
-                                            
                     }
                     displayRoms(romlister, settings.firstVisibleRowINDEX);
                 }
@@ -591,7 +703,9 @@ void menu(const char *title, char *errorMessage, bool isFatal, bool showSplash, 
                     {
                         settings.firstVisibleRowINDEX++;
                         displayRoms(romlister, settings.firstVisibleRowINDEX);
-                    } else {
+                    }
+                    else
+                    {
 
                         settings.firstVisibleRowINDEX = 0;
                         settings.selectedRow = STARTROW;
@@ -612,7 +726,7 @@ void menu(const char *title, char *errorMessage, bool isFatal, bool showSplash, 
                         settings.firstVisibleRowINDEX = 0;
                         settings.selectedRow = romlister.Count() + STARTROW - 1;
                     }
-                }            
+                }
                 displayRoms(romlister, settings.firstVisibleRowINDEX);
             }
             else if ((PAD1_Latch & RIGHT) == RIGHT && selectedRomOrFolder)
@@ -620,7 +734,9 @@ void menu(const char *title, char *errorMessage, bool isFatal, bool showSplash, 
                 if (settings.firstVisibleRowINDEX + PAGESIZE < romlister.Count())
                 {
                     settings.firstVisibleRowINDEX += PAGESIZE;
-                } else {
+                }
+                else
+                {
                     settings.firstVisibleRowINDEX = 0;
                 }
                 settings.selectedRow = STARTROW;
@@ -656,6 +772,7 @@ void menu(const char *title, char *errorMessage, bool isFatal, bool showSplash, 
             }
             else if ((PAD1_Latch & START) == START && (PAD1_Latch & SELECT) != SELECT)
             {
+                showLoadingScreen();
                 // reboot and start emulator with currently loaded game
                 // Create a file /START indicating not to reflash the already flashed game
                 // The emulator will delete this file after loading the game
@@ -681,10 +798,8 @@ void menu(const char *title, char *errorMessage, bool isFatal, bool showSplash, 
             }
             else if ((PAD1_Latch & A) == A && selectedRomOrFolder)
             {
-
                 if (entries[index].IsDirectory)
                 {
-
                     romlister.list(selectedRomOrFolder);
                     settings.firstVisibleRowINDEX = 0;
                     settings.selectedRow = STARTROW;
@@ -699,10 +814,10 @@ void menu(const char *title, char *errorMessage, bool isFatal, bool showSplash, 
                 }
                 else
                 {
+                    showLoadingScreen();
                     FRESULT fr;
                     FIL fil;
                     char curdir[FF_MAX_LFN];
-
                     fr = f_getcwd(curdir, sizeof(curdir));
                     printf("Current dir: %s\n", curdir);
                     // Create file containing full path name currently loaded rom
@@ -808,9 +923,10 @@ void menu(const char *title, char *errorMessage, bool isFatal, bool showSplash, 
     Frens::resetWifi();
     printf("Rebooting...\n");
     watchdog_enable(100, 1);
-    while (1) {
-        printf("Waiting for reboot...\n");
-    }
-        ;
+    while (1)
+    {
+        tight_loop_contents();
+        // printf("Waiting for reboot...\n");
+    };
     // Never return
 }
