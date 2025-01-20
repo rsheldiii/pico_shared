@@ -13,7 +13,7 @@ APP=${PROJECT}
 function usage() {
 	echo "Build script for the ${PROJECT} project"
 	echo  ""
-	echo "Usage: $0 [-d] [-2 | -r] [-w] [-t path to toolchain] [-c <hwconfig>]"
+	echo "Usage: $0 [-d] [-2 | -r] [-w] [-t path to toolchain] [ -p nprocessors] [-c <hwconfig>]"
 	echo "Options:"
 	echo "  -d: build in DEBUG configuration"
 	echo "  -2: build for Pico 2 board (RP2350)"
@@ -21,6 +21,7 @@ function usage() {
 	echo "  -w: build for Pico_w or Pico2_w"
 	echo "  -t <path to riscv toolchain>: only needed for riscv, specify the path to the riscv toolchain bin folder"
 	echo "     Default is \$PICO_SDK_PATH/toolchain/RISCV_RPI_2_0_0_2/bin"
+	echo "  -p <nprocessors>: specify the number of processors to use for the build"
 	echo "  -c <hwconfig>: specify the hardware configuration"
 	echo "     1: Pimoroni Pico DV Demo Base (Default)"
 	echo "     2: Breadboard with Adafruit AdaFruit DVI Breakout Board and AdaFruit MicroSD card breakout board"
@@ -48,6 +49,8 @@ function usage() {
 	echo -e "\t./bld.sh -c <hwconfig> -r -t \$PICO_SDK_PATH/toolchain/RISCV_RPI_2_0_0_2/bin"
 	echo ""
 } 
+NPROC=$(nproc)
+BUILDPROC=$NPROC
 PICO_BOARD=pico
 PICO_PLATFORM=rp2040
 BUILD=RELEASE
@@ -68,8 +71,16 @@ TOOLCHAIN_PATH=
 picoarmIsSet=0
 picoRiscIsSet=0
 USEPICOW=0
-while getopts "whd2rc:t:" opt; do
+while getopts "whd2rc:t:p:" opt; do
   case $opt in
+    p)
+	  BUILDPROC=$OPTARG
+	  if [[ $BUILDPROC -lt 1 || $BUILDPROC -gt $NPROC ]] ; then
+		  echo "Invalid value for -p, must be between 1 and $NPROC"
+		  exit 1
+	  fi
+	  echo "Using $BUILDPROC processors for the build"
+	  ;;
     d)
       BUILD=DEBUG
       ;;
@@ -204,7 +215,7 @@ if [ -z "$TOOLCHAIN_PATH" ] ; then
 else
 	cmake -DCMAKE_BUILD_TYPE=$BUILD -DPICO_BOARD=$PICO_BOARD -DHW_CONFIG=$HWCONFIG -DPICO_PLATFORM=$PICO_PLATFORM -DPICO_TOOLCHAIN_PATH=$TOOLCHAIN_PATH ..
 fi
-make -j "`nproc`"
+make -j $BUILDPROC
 cd ..
 echo ""
 if [ -f build/${APP}.uf2 ] ; then
