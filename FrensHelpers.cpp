@@ -404,7 +404,6 @@ namespace Frens
                                 }
                                 if (swapbytes)
                                 {
-                                    // SWAP LO<>HI
                                     for (int i = 0; i < bytesRead; i += 2)
                                     {
                                         const unsigned char temp = buffer[i];
