@@ -236,7 +236,7 @@ namespace Frens
 
         printf("Mounting SDcard");
         // modify below if customized configuration is needed
-        pico_fatfs_spi_config_t config = {
+        static pico_fatfs_spi_config_t config = {
             spi0,
             CLK_SLOW_DEFAULT,
             CLK_FAST_DEFAULT,
