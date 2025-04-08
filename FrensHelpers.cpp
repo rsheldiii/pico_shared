@@ -10,6 +10,7 @@
 #include "tusb.h"
 #include "dvi/dvi.h"
 #include "ff.h"
+#include "tf_card.h"
 #include "nespad.h"
 #include "wiipad.h"
 #include "settings.h"
@@ -234,6 +235,18 @@ namespace Frens
         sleep_ms(1000);
 
         printf("Mounting SDcard");
+        // modify below if customized configuration is needed
+        pico_fatfs_spi_config_t config = {
+            spi0,
+            CLK_SLOW_DEFAULT,
+            CLK_FAST_DEFAULT,
+            SDCARD_PIN_SPI0_MISO,
+            SDCARD_PIN_SPI0_CS,
+            SDCARD_PIN_SPI0_SCK,
+            SDCARD_PIN_SPI0_MOSI,
+            true // use internal pullup
+        };
+        pico_fatfs_set_config(&config);
         fr = f_mount(&fs, "", 1);
         if (fr != FR_OK)
         {
@@ -308,11 +321,11 @@ namespace Frens
             scanLine = false;
             printf("ScreenMode::NOSCANLINE_8_7\n");
             break;
-        // case ScreenMode::MAX:
-        //     scaleMode8_7_ = false;
-        //     scanLine = false;
-        //     printf("ScreenMode::MAX\n");
-        //     break;
+            // case ScreenMode::MAX:
+            //     scaleMode8_7_ = false;
+            //     scanLine = false;
+            //     printf("ScreenMode::MAX\n");
+            //     break;
         }
 
         dvi_->setScanLine(scanLine);
@@ -678,7 +691,7 @@ namespace Frens
                                           dvi::getTiming640x480p60Hz());
         //    dvi_->setAudioFreq(48000, 25200, 6144);
         dvi_->setAudioFreq(DVIAUDIOFREQ, 28000, 6272);
-        //dvi_->setAudioFreq(53267, 28000, 6272);
+        // dvi_->setAudioFreq(53267, 28000, 6272);
 
         dvi_->allocateAudioBuffer(audioBufferSize);
         //    dvi_->setExclusiveProc(&exclProc_);
