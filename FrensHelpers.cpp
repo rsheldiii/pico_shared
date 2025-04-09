@@ -234,7 +234,7 @@ namespace Frens
         TCHAR str[40];
         sleep_ms(1000);
 
-        printf("Mounting SDcard");
+        printf("Mounting SDcard...");
         // modify below if customized configuration is needed
         static pico_fatfs_spi_config_t config = {
             spi0,
@@ -251,11 +251,28 @@ namespace Frens
         if (fr != FR_OK)
         {
             snprintf(ErrorMessage, ERRORMESSAGESIZE, "SD card mount error: %d", fr);
-            printf("%s\n", ErrorMessage);
+            printf(" %s\n", ErrorMessage);
             return false;
         }
         printf("\n");
-
+        switch (fs.fs_type) {
+            case FS_FAT12:
+                printf("Type is FAT12\n");
+                break;
+            case FS_FAT16:
+                printf("Type is FAT16\n");
+                break;
+            case FS_FAT32:
+                printf("Type is FAT32\n");
+                break;
+            case FS_EXFAT:
+                printf("Type is EXFAT\n");
+                break;
+            default:
+                printf("Type is unknown\n");
+                break;
+        }
+        printf("Card size: %7.2f GB (GB = 1E9 bytes)\n\n", fs.csize * fs.n_fatent * 512E-9);
         fr = f_chdir("/");
         if (fr != FR_OK)
         {
