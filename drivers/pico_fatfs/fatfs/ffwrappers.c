@@ -2,9 +2,8 @@
 #include <string.h>
 #include <stdio.h>
 #include "ffwrappers.h"
-// wrapper functions for some FatFs functions
-// This file contains wrapper functions for the FatFs library
-// Wrapper functions are:
+
+// This file contains some wrapper functions for the FatFs library:
 // - my_chdir for f_chdir: Change the current working directory. 
 // - my_getcwd for f_getcwd: Get the current working directory. 
 // When using exfat filesystem, f_getcwd always returns the root directory.
@@ -80,7 +79,7 @@ void normalize_path(const char *input, char *output) {
 static TCHAR current_dir[FF_MAX_LFN] = "/"; // Static variable to store the current directory
 // Wrapper function for f_chdir that tracks the current directory
 FRESULT my_chdir(const TCHAR *path) {
-    
+#if 1   
     TCHAR temp[FF_MAX_LFN];
 
     // Check if path is absolute
@@ -106,15 +105,26 @@ FRESULT my_chdir(const TCHAR *path) {
     }
     printf("Changed directory to: %s\n", current_dir);
     return fr; 
+#else 
+    return f_chdir(path); // Call the actual f_chdir function
+#endif
 }
 
 // Function to retrieve the current directory
 const FRESULT my_getcwd(TCHAR *buffer, UINT len) {
+#if 1
+    char tempdir[FF_MAX_LFN];
     if (len < strlen(current_dir) + 1) {
         return FR_INVALID_PARAMETER; // Buffer too small
     }
     strncpy(buffer, current_dir, len);
     buffer[len - 1] = '\0'; // Ensure null termination
-    printf("Current directory: %s\n", buffer);
+    printf("Current tracked directory     : %s\n", buffer);
+    f_getcwd(tempdir, sizeof(tempdir));
+    printf("Directory reported by f_getcwd: %s\n", tempdir);
     return FR_OK;
+#else
+    return f_getcwd(buffer, len); // Call the actual f_getcwd function
+    // Note: This may not work as expected with exFAT, as it always returns the root directory.
+#endif
 }
