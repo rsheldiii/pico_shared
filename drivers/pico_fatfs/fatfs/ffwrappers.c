@@ -4,11 +4,13 @@
 #include "ffwrappers.h"
 
 // This file contains some wrapper functions for the FatFs library:
-// - my_chdir for f_chdir: Change the current working directory. 
-// - my_getcwd for f_getcwd: Get the current working directory. 
-// When using exfat filesystem, f_getcwd always returns the root directory.
+// - my_chdir for f_chdir: Change and keep track of the current working directory. 
+// - my_getcwd for f_getcwd: Get the current tracked  working directory. 
+// These wrappers are written because when using exfat filesystem, f_getcwd always returns the root directory.
 // See http://elm-chan.org/fsw/ff/doc/getcwd.html
-// The wrapper functions are used to track the current directory and normalize paths.
+// Using fat32, f_getcwd works as expected.
+// The wrappers are used to track the current directory and normalize paths.
+
 
 // Normalize a path by resolving "..", ".", and duplicate slashes
 // This function normalizes a given path by removing unnecessary components
