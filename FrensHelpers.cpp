@@ -10,6 +10,7 @@
 #include "tusb.h"
 #include "dvi/dvi.h"
 #include "ff.h"
+#include "ffwrappers.h"
 #include "tf_card.h"
 #include "nespad.h"
 #include "wiipad.h"
@@ -273,7 +274,7 @@ namespace Frens
                 break;
         }
         printf("Card size: %7.2f GB (GB = 1E9 bytes)\n\n", fs.csize * fs.n_fatent * 512E-9);
-        fr = f_chdir("/");
+        fr = my_chdir("/"); // f_chdir("/");
         if (fr != FR_OK)
         {
             snprintf(ErrorMessage, ERRORMESSAGESIZE, "Cannot change dir to / : %d", fr);
@@ -283,7 +284,7 @@ namespace Frens
         // for f_getcwd to work, set
         //   #define FF_FS_RPATH		2
         // in drivers/fatfs/ffconf.h
-        fr = f_getcwd(str, sizeof(str));
+        fr = my_getcwd(str, sizeof(str));   ; // f_getcwd(str, sizeof(str));
         if (fr != FR_OK)
         {
             snprintf(ErrorMessage, ERRORMESSAGESIZE, "Cannot get current dir: %d", fr);

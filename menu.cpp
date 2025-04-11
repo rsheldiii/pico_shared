@@ -20,7 +20,7 @@
 
 #include "font_8x8.h"
 #include "settings.h"
-
+#include "ffwrappers.h"
 #define CC(x) (((x >> 1) & 15) | (((x >> 6) & 15) << 4) | (((x >> 11) & 15) << 8))
 const __UINT16_TYPE__ NesMenuPalette[64] = {
     CC(0x39ce), CC(0x1071), CC(0x0015), CC(0x2013), CC(0x440e), CC(0x5402), CC(0x5000), CC(0x3c20),
@@ -744,7 +744,7 @@ void menu(const char *title, char *errorMessage, bool isFatal, bool showSplash, 
             }
             else if ((PAD1_Latch & B) == B)
             {
-                fr = f_getcwd(settings.currentDir, FF_MAX_LFN);
+                fr = my_getcwd(settings.currentDir, FF_MAX_LFN); // f_getcwd(settings.currentDir, FF_MAX_LFN);
                 if (fr == FR_OK)
                 {
 
@@ -754,7 +754,7 @@ void menu(const char *title, char *errorMessage, bool isFatal, bool showSplash, 
                         settings.firstVisibleRowINDEX = 0;
                         settings.selectedRow = STARTROW;
                         displayRoms(romlister, settings.firstVisibleRowINDEX);
-                        fr = f_getcwd(settings.currentDir, FF_MAX_LFN);
+                        fr = my_getcwd(settings.currentDir, FF_MAX_LFN);  // f_getcwd(settings.currentDir, FF_MAX_LFN);
                         if (fr == FR_OK)
                         {
                             printf("Current dir: %s\n", settings.currentDir);
@@ -805,7 +805,7 @@ void menu(const char *title, char *errorMessage, bool isFatal, bool showSplash, 
                     settings.selectedRow = STARTROW;
                     displayRoms(romlister, settings.firstVisibleRowINDEX);
                     // get full path name of folder
-                    fr = f_getcwd(settings.currentDir, FF_MAX_LFN);
+                    fr = my_getcwd(settings.currentDir, FF_MAX_LFN);  //  f_getcwd(settings.currentDir, FF_MAX_LFN);
                     if (fr != FR_OK)
                     {
                         printf("Cannot get current dir: %d\n", fr);
@@ -818,7 +818,7 @@ void menu(const char *title, char *errorMessage, bool isFatal, bool showSplash, 
                     FRESULT fr;
                     FIL fil;
                     char curdir[FF_MAX_LFN];
-                    fr = f_getcwd(curdir, sizeof(curdir));
+                    fr = my_getcwd(curdir, sizeof(curdir));    // f_getcwd(curdir, sizeof(curdir));
                     printf("Current dir: %s\n", curdir);
                     // Create file containing full path name currently loaded rom
                     // The contents of this file will be used by the emulator to flash and start the correct rom in main.cpp
