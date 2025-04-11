@@ -5,6 +5,7 @@ if (NOT TARGET pico_fatfs)
         ${CMAKE_CURRENT_LIST_DIR}/fatfs/ff.c
         ${CMAKE_CURRENT_LIST_DIR}/fatfs/ffsystem.c
         ${CMAKE_CURRENT_LIST_DIR}/fatfs/ffunicode.c
+        ${CMAKE_CURRENT_LIST_DIR}/fatfs/ffwrappers.c
         ${CMAKE_CURRENT_LIST_DIR}/tf_card.c
     )
 
