@@ -256,24 +256,33 @@ namespace Frens
             return false;
         }
         printf("\n");
-        switch (fs.fs_type) {
-            case FS_FAT12:
-                printf("Type is FAT12\n");
-                break;
-            case FS_FAT16:
-                printf("Type is FAT16\n");
-                break;
-            case FS_FAT32:
-                printf("Type is FAT32\n");
-                break;
-            case FS_EXFAT:
-                printf("Type is EXFAT\n");
-                break;
-            default:
-                printf("Type is unknown\n");
-                break;
+        switch (fs.fs_type)
+        {
+        case FS_FAT12:
+            printf("Type is FAT12\n");
+            break;
+        case FS_FAT16:
+            printf("Type is FAT16\n");
+            break;
+        case FS_FAT32:
+            printf("Type is FAT32\n");
+            break;
+        case FS_EXFAT:
+            printf("Type is EXFAT\n");
+            break;
+        default:
+            printf("Type is unknown\n");
+            break;
         }
-        printf("Card size: %7.2f GB\n\n", fs.csize * fs.n_fatent * 512E-9);
+        DWORD fre_clust, fre_sect, tot_sect;
+        FATFS *fstemp;
+        f_getfree("", &fre_clust, &fstemp);
+        /* Get total sectors and free sectors */
+        tot_sect = (fstemp->n_fatent - 2) * fstemp->csize;
+        fre_sect = fre_clust * fstemp->csize;
+
+        /* Print the free space (assuming 512 bytes/sector) */
+        printf("%10lu KiB (%7.2f GB) total drive space.\n%10lu KiB available.\n", tot_sect / 2, fstemp->csize * fstemp->n_fatent * 512E-9, fre_sect / 2);
         fr = my_chdir("/"); // f_chdir("/");
         if (fr != FR_OK)
         {
@@ -284,7 +293,8 @@ namespace Frens
         // for f_getcwd to work, set
         //   #define FF_FS_RPATH		2
         // in drivers/fatfs/ffconf.h
-        fr = my_getcwd(str, sizeof(str));   ; // f_getcwd(str, sizeof(str));
+        fr = my_getcwd(str, sizeof(str));
+        ; // f_getcwd(str, sizeof(str));
         if (fr != FR_OK)
         {
             snprintf(ErrorMessage, ERRORMESSAGESIZE, "Cannot get current dir: %d", fr);
