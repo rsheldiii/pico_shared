@@ -34,10 +34,10 @@ void normalize_path(const char *input, char *output) {
         }
 
         // Extract the next token
-        char token[256];
+        char token[FF_MAX_LFN];
         int token_len = 0;
         while (*p != '/' && *p != '\0') {
-            if (token_len < 255) { // Ensure token does not exceed 255 characters
+            if (token_len < FF_MAX_LFN -1) { // Ensure token does not exceed FF_MAX_LFN characters
                 token[token_len++] = *p++;
             } else {
                 p++; // Skip excess characters
