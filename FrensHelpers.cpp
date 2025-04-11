@@ -273,7 +273,7 @@ namespace Frens
                 printf("Type is unknown\n");
                 break;
         }
-        printf("Card size: %7.2f GB (GB = 1E9 bytes)\n\n", fs.csize * fs.n_fatent * 512E-9);
+        printf("Card size: %7.2f GB\n\n", fs.csize * fs.n_fatent * 512E-9);
         fr = my_chdir("/"); // f_chdir("/");
         if (fr != FR_OK)
         {
