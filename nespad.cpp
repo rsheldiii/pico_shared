@@ -1,33 +1,24 @@
 #include "hardware/pio.h"
 
 #define nespad_wrap_target 0
-#define nespad_wrap 6
+#define nespad_wrap 7
 
 static const uint16_t nespad_program_instructions[] = {
-            //     .wrap_target
-#if HW_CONFIG != 4
+          //     .wrap_target
     0xd020, //  0: irq    wait 0          side 1     
-    0xfa01, //  1: set    pins, 1         side 1 [10]
+    0xf101, //  1: set    pins, 1         side 1 [1] 
     0xf027, //  2: set    x, 7            side 1     
     0xf000, //  3: set    pins, 0         side 1     
-    0xf800, //  4: set    pins, 0         side 1 [8] 
-    0x4201, //  5: in     pins, 1         side 0 [2] 
-    0x1044, //  6: jmp    x--, 4          side 1             
-#else
-    0xc020, //  0: irq    wait 0          side 0
-    0xea01, //  1: set    pins, 1         side 0 [10]
-    0xe027, //  2: set    x, 7            side 0
-    0xe000, //  3: set    pins, 0         side 0
-    0x4401, //  4: in     pins, 1         side 0 [4]
-    0xf500, //  5: set    pins, 0         side 1 [5]
-    0x0044, //  6: jmp    x--, 4          side 0
-#endif
-   //     .wrap
+    0xf400, //  4: set    pins, 0         side 1 [4] 
+    0xe100, //  5: set    pins, 0         side 0 [1] 
+    0x5301, //  6: in     pins, 1         side 1 [3] 
+    0x1044, //  7: jmp    x--, 4          side 1     
+            //     .wrap
 };
 
 static const struct pio_program nespad_program = {
     .instructions = nespad_program_instructions,
-    .length = 7,
+    .length = 8,
     .origin = -1,
 };
 
