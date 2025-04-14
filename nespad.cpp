@@ -4,7 +4,7 @@
 #define nespad_wrap 7
 
 static const uint16_t nespad_program_instructions[] = {
-            //     .wrap_target
+          //     .wrap_target
     0xd020, //  0: irq    wait 0          side 1     
     0xf101, //  1: set    pins, 1         side 1 [1] 
     0xf027, //  2: set    x, 7            side 1     
