@@ -28,7 +28,7 @@ function usage() {
 	echo "        Custom pcb"
 	echo "     3: Adafruit Feather RP2040 DVI"
 	echo "     4: Waveshare RP2040-PiZero"
-	echo "     5: Adafruit FruitJam  (RP2350)"
+	echo "     5: Adafruit Metro RP2350"
 	echo "     hwconfig 3 and 4 are RP2040-based boards with no wifi, so -2 -r and -w are not allowed"
 	echo "  -h: display this help"
 	echo ""
@@ -191,7 +191,7 @@ case $HWCONFIG in
 		UF2="${APP}WsRP2040PiZero.uf2"
 		;;
 	5)
-		UF2="${APP}AdafruitFruitJam.uf2"
+		UF2="${APP}AdafruitMetroRP2350.uf2"
 		;;
 	*)
 		echo "Invalid value: $HWCONFIG specified for option -c, must be 1, 2, 3 or 4"
