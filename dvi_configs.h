@@ -29,7 +29,7 @@ namespace {
         .invert = false,
     };
     // FruitJam
-    constexpr dvi::Config dviConfig_FruitJam = {
+    constexpr dvi::Config dviConfig_AdafruitMetroRP2350 = {
         .pinTMDS = {18, 16, 12},
         .pinClock = 14,
         .invert = false,
