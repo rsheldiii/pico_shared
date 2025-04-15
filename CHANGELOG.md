@@ -6,11 +6,7 @@
     - Updated to the latest version of the pico_fatfs library from https://github.com/elehobica/pico_fatfs.
     - Besides FAT32, SD cards can now also be formatted as exFAT.
 - Nes controller PIO code updated by [@ManCloud](https://github.com/ManCloud). This fixes the NES controller issues on the Waveshare RP2040 - PiZero board. [#8](https://github.com/fhoedemakers/pico_shared/issues/8)
-- Support for Adafruit Metro RP2350 board. You need the following materials:
-    - Adafruit Metro RP2350 board. https://www.adafruit.com/product/6267
-    - 22-pin 0.5mm pitch FPC flex cable for DSI CSI or HSTX. https://www.adafruit.com/product/6036
-    - Adafruit RP2350 22-pin FPC HSTX to DVI Adapter for HDMI Displays. https://www.adafruit.com/product/6055 
-    - Usb-c Y-cable. https://a.co/d/9vCzu0h For power and USB-controller. NES controller support is not yet available.
+- Support added for Adafruit Metro RP2350 board. 
     
 ## 19/01/2025
 
