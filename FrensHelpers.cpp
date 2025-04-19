@@ -11,7 +11,9 @@
 #include "dvi/dvi.h"
 #include "ff.h"
 #include "ffwrappers.h"
+#if USE_OLD_SDDRIVER == 0
 #include "tf_card.h"
+#endif
 #include "nespad.h"
 #include "wiipad.h"
 #include "settings.h"
@@ -236,6 +238,7 @@ namespace Frens
         sleep_ms(1000);
 
         printf("Mounting SDcard...");
+#if USE_OLD_SDDRIVER == 0
         // modify below if customized configuration is needed
         static pico_fatfs_spi_config_t config = {
             spi0,
@@ -248,6 +251,7 @@ namespace Frens
             true // use internal pullup
         };
         pico_fatfs_set_config(&config);
+#endif
         fr = f_mount(&fs, "", 1);
         if (fr != FR_OK)
         {
