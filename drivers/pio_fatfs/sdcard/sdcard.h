@@ -8,20 +8,20 @@
 #define SDCARD_SPI_BUS spi0
 #endif
 
-#ifndef SDCARD_PIN_SPI0_CS
-#define SDCARD_PIN_SPI0_CS     22
+#ifndef SDCARD_PIN_CS
+#define SDCARD_PIN_CS     22
 #endif
 
-#ifndef SDCARD_PIN_SPI0_SCK
-#define SDCARD_PIN_SPI0_SCK    18
+#ifndef SDCARD_PIN_SCK
+#define SDCARD_PIN_SCK    18
 #endif
 
-#ifndef SDCARD_PIN_SPI0_MOSI
-#define SDCARD_PIN_SPI0_MOSI   19
+#ifndef SDCARD_PIN_MOSI
+#define SDCARD_PIN_MOSI   19
 #endif
 
-#ifndef SDCARD_PIN_SPI0_MISO 
-#define SDCARD_PIN_SPI0_MISO   16
+#ifndef SDCARD_PIN_MISO 
+#define SDCARD_PIN_MISO   16
 #endif
 
 #endif // _SDCARD_H_

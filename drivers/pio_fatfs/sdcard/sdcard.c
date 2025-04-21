@@ -103,12 +103,12 @@ static void FCLK_FAST(void)
 
 static void CS_HIGH(void)
 {
-    cs_deselect(SDCARD_PIN_SPI0_CS);
+    cs_deselect(SDCARD_PIN_CS);
 }
 
 static void CS_LOW(void)
 {
-    cs_select(SDCARD_PIN_SPI0_CS);
+    cs_select(SDCARD_PIN_CS);
 }
 
 /* Initialize MMC interface */
@@ -118,33 +118,33 @@ void init_spi(void)
 	/* GPIO pin configuration */
 	/* pull up of MISO is MUST (10Kohm external pull up is recommended) */
 	/* Set drive strength and slew rate if needed to meet wire condition */
-	gpio_init(SDCARD_PIN_SPI0_SCK);
-	//gpio_pull_up(SDCARD_PIN_SPI0_SCK);
-	//gpio_set_drive_strength(SDCARD_PIN_SPI0_SCK, PADS_BANK0_GPIO0_DRIVE_VALUE_4MA); // 2mA, 4mA (default), 8mA, 12mA
-	//gpio_set_slew_rate(SDCARD_PIN_SPI0_SCK, 0); // 0: SLOW (default), 1: FAST
+	gpio_init(SDCARD_PIN_SCK);
+	//gpio_pull_up(SDCARD_PIN_SCK);
+	//gpio_set_drive_strength(SDCARD_PIN_SCK, PADS_BANK0_GPIO0_DRIVE_VALUE_4MA); // 2mA, 4mA (default), 8mA, 12mA
+	//gpio_set_slew_rate(SDCARD_PIN_SCK, 0); // 0: SLOW (default), 1: FAST
 
-	gpio_init(SDCARD_PIN_SPI0_MISO);
-	gpio_pull_up(SDCARD_PIN_SPI0_MISO);
-	//gpio_set_schmitt(SDCARD_PIN_SPI0_MISO, 1); // 0: Off, 1: On (default)
+	gpio_init(SDCARD_PIN_MISO);
+	gpio_pull_up(SDCARD_PIN_MISO);
+	//gpio_set_schmitt(SDCARD_PIN_MISO, 1); // 0: Off, 1: On (default)
 
-	gpio_init(SDCARD_PIN_SPI0_MOSI);
-	gpio_pull_up(SDCARD_PIN_SPI0_MOSI);
-	//gpio_set_drive_strength(SDCARD_PIN_SPI0_MOSI, PADS_BANK0_GPIO0_DRIVE_VALUE_4MA); // 2mA, 4mA (default), 8mA, 12mA
-	//gpio_set_slew_rate(SDCARD_PIN_SPI0_MOSI, 0); // 0: SLOW (default), 1: FAST
+	gpio_init(SDCARD_PIN_MOSI);
+	gpio_pull_up(SDCARD_PIN_MOSI);
+	//gpio_set_drive_strength(SDCARD_PIN_MOSI, PADS_BANK0_GPIO0_DRIVE_VALUE_4MA); // 2mA, 4mA (default), 8mA, 12mA
+	//gpio_set_slew_rate(SDCARD_PIN_MOSI, 0); // 0: SLOW (default), 1: FAST
 
-	gpio_init(SDCARD_PIN_SPI0_CS);
-	//gpio_pull_up(SDCARD_PIN_SPI0_CS);
-	//gpio_set_drive_strength(SDCARD_PIN_SPI0_CS, PADS_BANK0_GPIO0_DRIVE_VALUE_4MA); // 2mA, 4mA (default), 8mA, 12mA
-	//gpio_set_slew_rate(SDCARD_PIN_SPI0_CS, 0); // 0: SLOW (default), 1: FAST
-	gpio_set_dir(SDCARD_PIN_SPI0_CS, GPIO_OUT);
+	gpio_init(SDCARD_PIN_CS);
+	//gpio_pull_up(SDCARD_PIN_CS);
+	//gpio_set_drive_strength(SDCARD_PIN_CS, PADS_BANK0_GPIO0_DRIVE_VALUE_4MA); // 2mA, 4mA (default), 8mA, 12mA
+	//gpio_set_slew_rate(SDCARD_PIN_CS, 0); // 0: SLOW (default), 1: FAST
+	gpio_set_dir(SDCARD_PIN_CS, GPIO_OUT);
 
 	/* chip _select invalid*/
 	CS_HIGH();
 
 #ifndef SDCARD_PIO
-	gpio_set_function(SDCARD_PIN_SPI0_SCK, GPIO_FUNC_SPI);
-	gpio_set_function(SDCARD_PIN_SPI0_MISO, GPIO_FUNC_SPI);
-	gpio_set_function(SDCARD_PIN_SPI0_MOSI, GPIO_FUNC_SPI);
+	gpio_set_function(SDCARD_PIN_SCK, GPIO_FUNC_SPI);
+	gpio_set_function(SDCARD_PIN_MISO, GPIO_FUNC_SPI);
+	gpio_set_function(SDCARD_PIN_MOSI, GPIO_FUNC_SPI);
 
 	spi_init(SDCARD_SPI_BUS, CLK_SLOW);
 
@@ -156,9 +156,9 @@ void init_spi(void)
 		SPI_MSB_FIRST /* order */
 	);
 #else
-    gpio_set_dir(SDCARD_PIN_SPI0_SCK, GPIO_OUT);
-    gpio_set_dir(SDCARD_PIN_SPI0_MISO, GPIO_OUT);
-    gpio_set_dir(SDCARD_PIN_SPI0_MOSI, GPIO_OUT);
+    gpio_set_dir(SDCARD_PIN_SCK, GPIO_OUT);
+    gpio_set_dir(SDCARD_PIN_MISO, GPIO_OUT);
+    gpio_set_dir(SDCARD_PIN_MOSI, GPIO_OUT);
 
 	float clkdiv = 3.0f;
 	int cpol = 0;
@@ -172,9 +172,9 @@ void init_spi(void)
 				clkdiv,
 				cpha,
 				cpol,
-				SDCARD_PIN_SPI0_SCK,
-				SDCARD_PIN_SPI0_MOSI,
-				SDCARD_PIN_SPI0_MISO
+				SDCARD_PIN_SCK,
+				SDCARD_PIN_MOSI,
+				SDCARD_PIN_MISO
 	);
 #endif
 }
