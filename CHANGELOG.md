@@ -2,6 +2,7 @@
 
 ## 4/2025
 
+- Releases now built with SDK 2.1.1
 - Support added for Adafruit Metro RP2350 board. See README for more info.
 - Improved SD card Support:
     - Updated to the latest version of the pico_fatfs library from https://github.com/elehobica/pico_fatfs. This is required for the Adafruit Metro RP2350. The Pimoroni Pico DV does not work with this new version and still needs the old version. Therefore, the old version is still included in the repository. (pico_shared/drivers/pio_fatfs) 
@@ -9,7 +10,9 @@
     - Besides FAT32, SD cards can now also be formatted as exFAT.
 - Nes controller PIO code updated by [@ManCloud](https://github.com/ManCloud). This fixes the NES controller issues on the Waveshare RP2040 - PiZero board. [#8](https://github.com/fhoedemakers/pico_shared/issues/8)
 
-    
+## Fixes
+- Fixed Pico 2 W: Led blinking causes screen flicker and ioctl timeouts [#2](https://github.com/fhoedemakers/pico_shared/issues/2). Solved with in SDK 2.1.1
+
 ## 19/01/2025
 
 - To properly use the AliExpress SNES controller you need to press Y to enable the X-button. This is now documented in the README.md.
