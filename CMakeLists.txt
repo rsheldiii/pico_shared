@@ -16,8 +16,8 @@ FrensFonts.cpp
 ffwrappers.c
 )
 
-# Some boards need a more recent version of the sdcard driver (Adafruit Metro RP2359), while other boards
-# need the old version. (Adafruit Feather DVI, Pimoroni Pico DV)
+# All configurations work with the pico_fatfs driver except for the Pimoroni Pico DV. Using pico_fatfs, mounting
+# the SDcard on this board always fails with error 3. For this board the older pio_fatfs driver is used.
 if(USE_OLD_SDDRIVER EQUAL 0)
         add_subdirectory(drivers/pico_fatfs)      
         target_include_directories(pico_shared INTERFACE
