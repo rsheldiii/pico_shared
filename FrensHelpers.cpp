@@ -241,13 +241,13 @@ namespace Frens
 #if USE_OLD_SDDRIVER == 0
         // modify below if customized configuration is needed
         static pico_fatfs_spi_config_t config = {
-            spi0,
+            SDCARD_SPI,
             CLK_SLOW_DEFAULT,
             CLK_FAST_DEFAULT,
-            SDCARD_PIN_SPI0_MISO,
-            SDCARD_PIN_SPI0_CS,
-            SDCARD_PIN_SPI0_SCK,
-            SDCARD_PIN_SPI0_MOSI,
+            SDCARD_PIN_MISO,
+            SDCARD_PIN_CS,
+            SDCARD_PIN_SCK,
+            SDCARD_PIN_MOSI,
             true // use internal pullup
         };
         pico_fatfs_set_config(&config);
