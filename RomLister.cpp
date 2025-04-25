@@ -4,6 +4,7 @@
 #include "RomLister.h"
 #include "FrensHelpers.h"
 #include "ff.h"
+#include "ffwrappers.h"
 
 // class to listing directories and files for a given extension on sd card
 namespace Frens
@@ -66,7 +67,7 @@ namespace Frens
 		// for f_getcwd to work, set
 		//   #define FF_FS_RPATH		2
 		// in ffconf.c
-		fr = f_chdir(directoryName);
+		fr = my_chdir(directoryName);     // f_chdir(directoryName);
 		if (fr != FR_OK)
 		{
 			printf("Error changing dir: %d\n", fr);

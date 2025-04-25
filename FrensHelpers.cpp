@@ -10,6 +10,10 @@
 #include "tusb.h"
 #include "dvi/dvi.h"
 #include "ff.h"
+#include "ffwrappers.h"
+#if USE_OLD_SDDRIVER == 0
+#include "tf_card.h"
+#endif
 #include "nespad.h"
 #include "wiipad.h"
 #include "settings.h"
@@ -233,17 +237,57 @@ namespace Frens
         TCHAR str[40];
         sleep_ms(1000);
 
-        printf("Mounting SDcard");
+        printf("Mounting SDcard...");
+#if USE_OLD_SDDRIVER == 0
+        // modify below if customized configuration is needed
+        static pico_fatfs_spi_config_t config = {
+            SDCARD_SPI,
+            CLK_SLOW_DEFAULT,
+            CLK_FAST_DEFAULT,
+            SDCARD_PIN_MISO,
+            SDCARD_PIN_CS,
+            SDCARD_PIN_SCK,
+            SDCARD_PIN_MOSI,
+            true // use internal pullup
+        };
+        pico_fatfs_set_config(&config);
+#endif
         fr = f_mount(&fs, "", 1);
         if (fr != FR_OK)
         {
             snprintf(ErrorMessage, ERRORMESSAGESIZE, "SD card mount error: %d", fr);
-            printf("%s\n", ErrorMessage);
+            printf(" %s\n", ErrorMessage);
             return false;
         }
         printf("\n");
+        switch (fs.fs_type)
+        {
+        case FS_FAT12:
+            printf("Type is FAT12\n");
+            break;
+        case FS_FAT16:
+            printf("Type is FAT16\n");
+            break;
+        case FS_FAT32:
+            printf("Type is FAT32\n");
+            break;
+        case FS_EXFAT:
+            printf("Type is EXFAT\n");
+            break;
+        default:
+            printf("Type is unknown\n");
+            break;
+        }
+        DWORD fre_clust, fre_sect, tot_sect;
+        FATFS *fstemp;
+        f_getfree("", &fre_clust, &fstemp);
+        /* Get total sectors and free sectors */
+        tot_sect = (fstemp->n_fatent - 2) * fstemp->csize;
+        fre_sect = fre_clust * fstemp->csize;
 
-        fr = f_chdir("/");
+        /* Print the free space (assuming 512 bytes/sector) */
+        printf("%10lu KiB (%7.2f GB) total drive space.\n%10lu KiB available.\n", tot_sect / 2, fstemp->csize * fstemp->n_fatent * 512E-9, fre_sect / 2);
+        fr = my_chdir("/"); // f_chdir("/");
         if (fr != FR_OK)
         {
             snprintf(ErrorMessage, ERRORMESSAGESIZE, "Cannot change dir to / : %d", fr);
@@ -253,7 +297,8 @@ namespace Frens
         // for f_getcwd to work, set
         //   #define FF_FS_RPATH		2
         // in drivers/fatfs/ffconf.h
-        fr = f_getcwd(str, sizeof(str));
+        fr = my_getcwd(str, sizeof(str));
+        ; // f_getcwd(str, sizeof(str));
         if (fr != FR_OK)
         {
             snprintf(ErrorMessage, ERRORMESSAGESIZE, "Cannot get current dir: %d", fr);
@@ -308,11 +353,11 @@ namespace Frens
             scanLine = false;
             printf("ScreenMode::NOSCANLINE_8_7\n");
             break;
-        // case ScreenMode::MAX:
-        //     scaleMode8_7_ = false;
-        //     scanLine = false;
-        //     printf("ScreenMode::MAX\n");
-        //     break;
+            // case ScreenMode::MAX:
+            //     scaleMode8_7_ = false;
+            //     scanLine = false;
+            //     printf("ScreenMode::MAX\n");
+            //     break;
         }
 
         dvi_->setScanLine(scanLine);
@@ -678,7 +723,7 @@ namespace Frens
                                           dvi::getTiming640x480p60Hz());
         //    dvi_->setAudioFreq(48000, 25200, 6144);
         dvi_->setAudioFreq(DVIAUDIOFREQ, 28000, 6272);
-        //dvi_->setAudioFreq(53267, 28000, 6272);
+        // dvi_->setAudioFreq(53267, 28000, 6272);
 
         dvi_->allocateAudioBuffer(audioBufferSize);
         //    dvi_->setExclusiveProc(&exclProc_);

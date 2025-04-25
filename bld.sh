@@ -28,6 +28,7 @@ function usage() {
 	echo "        Custom pcb"
 	echo "     3: Adafruit Feather RP2040 DVI"
 	echo "     4: Waveshare RP2040-PiZero"
+	echo "     5: Adafruit Metro RP2350"
 	echo "     hwconfig 3 and 4 are RP2040-based boards with no wifi, so -2 -r and -w are not allowed"
 	echo "  -h: display this help"
 	echo ""
@@ -154,14 +155,23 @@ if [[ $SDKVERSION -lt 2 && $PICO_PLATFORM == rp2350* ]] ; then
 		echo ""
 		exit 1
 fi
-# pico2 board not compatible with HWCONFIG > 2
-if [[ $HWCONFIG -gt 2 && $PICO_PLATFORM == rp2350* ]] ; then
-	echo "HW configuration $HWCONFIG is a RP2040 based board, not compatible with Pico 2"
-	exit 1
+if [[ $PICO_PLATFORM == rp2350* ]] ; then
+	# HWCONFIG 3 and 4 are not compatible with Pico 2
+	if [[ $HWCONFIG -eq 3 || $HWCONFIG -eq 4 ]] ; then
+		echo "HWCONFIG $HWCONFIG is not compatible with Pico 2"
+		echo "Please use -c 1 or -c 2 or -c 5"
+	fi
+else 
+	# HWCONFIG 5 is not compatible with pico
+	if [[ $HWCONFIG -eq 5 ]] ; then
+		echo "HWCONFIG $HWCONFIG is not compatible with Pico"
+		exit 1
+	fi
 fi
-# -w is not compatible with HWCONFIG 3 and 4
+
+# -w is not compatible with HWCONFIG 3, 4 and 5 those boards have no Wifi module
 if [[ $USEPICOW -eq 1 && $HWCONFIG -gt 2 ]] ; then
-	echo "Option -w is not compatible with HWCONFIG 3 and 4, thos boards have no Wifi module"
+	echo "Option -w is not compatible with HWCONFIG 3, 4 and 5 those boards have no Wifi module"
 	exit 1
 fi
 
@@ -179,6 +189,9 @@ case $HWCONFIG in
 		;;
 	4)
 		UF2="${APP}WsRP2040PiZero.uf2"
+		;;
+	5)
+		UF2="${APP}AdafruitMetroRP2350.uf2"
 		;;
 	*)
 		echo "Invalid value: $HWCONFIG specified for option -c, must be 1, 2, 3 or 4"
