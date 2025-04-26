@@ -11,9 +11,8 @@
 #include "dvi/dvi.h"
 #include "ff.h"
 #include "ffwrappers.h"
-#if USE_OLD_SDDRIVER == 0
 #include "tf_card.h"
-#endif
+
 #include "nespad.h"
 #include "wiipad.h"
 #include "settings.h"
@@ -237,21 +236,28 @@ namespace Frens
         TCHAR str[40];
         sleep_ms(1000);
 
-        printf("Mounting SDcard...");
-#if USE_OLD_SDDRIVER == 0
-        // modify below if customized configuration is needed
+        printf("Mounting SDcard ");
+
         static pico_fatfs_spi_config_t config = {
             SDCARD_SPI,
             CLK_SLOW_DEFAULT,
-            CLK_FAST_DEFAULT,
+            CLK_FAST_DEFAULT_PIO,
             SDCARD_PIN_MISO,
             SDCARD_PIN_CS,
             SDCARD_PIN_SCK,
             SDCARD_PIN_MOSI,
             true // use internal pullup
         };
-        pico_fatfs_set_config(&config);
-#endif
+        bool spi_configured = pico_fatfs_set_config(&config);
+        // Try first using SPI
+        if (spi_configured) {
+            printf("using SPI...");
+        } else {
+            // fall back to PIO SPI
+            pico_fatfs_config_spi_pio(SDCARD_PIO, pio_claim_unused_sm(SDCARD_PIO, true));
+            printf("using SPI PIO...");
+        }
+
         fr = f_mount(&fs, "", 1);
         if (fr != FR_OK)
         {
