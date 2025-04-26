@@ -1,6 +1,14 @@
 # Release notes
 
-## 4/2025
+## 25/4/2025
+
+- removed Old fatfs driver. Now all configs can use https://github.com/elehobica/pico_fatfs (https://github.com/elehobica/pico_fatfs/issues/8)
+- Board configs are moved to pico_shared.
+
+## Fixes
+- none
+
+## 23/4/2025
 
 - Releases now built with SDK 2.1.1
 - Support added for Adafruit Metro RP2350 board. See README for more info. No RISCV support yet.
