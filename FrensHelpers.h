@@ -33,7 +33,7 @@ enum class ScreenMode
 extern uintptr_t ROM_FILE_ADDR ; //0x10090000
 extern int maxRomSize;
 extern char ErrorMessage[];
-extern std::unique_ptr<dvi::DVI> dvi_;
+extern std::unique_ptr<ScreenOutput> dvi_;
 extern bool scaleMode8_7_;
 
 extern char __flash_binary_start;  // defined in linker script

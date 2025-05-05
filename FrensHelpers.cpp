@@ -1,4 +1,3 @@
-
 #include <stdio.h>
 #include <cstring>
 #include "pico.h"
@@ -8,7 +7,6 @@
 #include "hardware/watchdog.h"
 #include "util/exclusive_proc.h"
 #include "tusb.h"
-#include "dvi/dvi.h"
 #include "ff.h"
 #include "ffwrappers.h"
 #include "tf_card.h"
@@ -25,10 +23,29 @@
 #include "pico/cyw43_arch.h"
 #endif
 
+#ifdef SPI_SCREEN
+#include "spi/spi_buffer.h"
+#else
+#include "dvi/dvi.h"
+#endif // SPI_SCREEN
+
+#include "screen_output.h" // Include the base class header
+
 #ifndef DVIAUDIOFREQ
 #define DVIAUDIOFREQ 44100
 #endif
-std::unique_ptr<dvi::DVI> dvi_;
+
+// Change pointer type to base class
+std::unique_ptr<ScreenOutput> dvi_;
+
+/* // Remove old conditional declarations
+#ifdef SPI_SCREEN
+std::unique_ptr<spi_buffer::SPI_Buffer> dvi_; // Use SPI_Buffer type
+#else
+std::unique_ptr<dvi::DVI> dvi_; // Keep original DVI type
+#endif // SPI_SCREEN
+*/
+
 util::ExclusiveProc exclProc_;
 char ErrorMessage[ERRORMESSAGESIZE];
 bool scaleMode8_7_ = true;
@@ -537,31 +554,49 @@ namespace Frens
     {
         while (true)
         {
-            dvi_->registerIRQThisCore();
-            dvi_->waitForValidLine();
-
-            dvi_->start();
-            while (!exclProc_.isExist())
-            {
-                if (scaleMode8_7_)
-                {
-                    // Default
-                    dvi_->convertScanBuffer12bppScaled16_7(34, 32, 288 * 2);
-                    // dvi_->convertScanBuffer12bppScaled16_7(0,0 , 320 * 2);
-                    //  34 + 252 + 34
-                    //  32 + 576 + 32
-                }
-                else
-                {
-                    //
-                    dvi_->convertScanBuffer12bpp();
-                }
-            }
-
-            dvi_->unregisterIRQThisCore();
-            dvi_->stop();
-
-            exclProc_.processOrWaitIfExist();
+#ifdef SPI_SCREEN
+            // SPI version using Timer IRQ - Core 1 mainly waits/yields
+            // The timer IRQ drives the line processing
+            // We might still need waitForValidLine if core 0 is faster than the display rate
+            // Alternatively, just sleep/yield to let other tasks run.
+            // Let's use waitForValidLine for now to ensure sync
+             dvi_->registerIRQThisCore();
+             dvi_->start();
+             while (!exclProc_.isExist()) // Check if core 0 needs exclusive access
+             {
+                dvi_->waitForValidLine(); // Wait until core 0 has provided a line
+                // IRQ handler processes the line
+                tight_loop_contents(); // Or maybe sleep/yield?
+             }
+             dvi_->stop();
+             dvi_->unregisterIRQThisCore();
+#else
+            // Original DVI version
+             dvi_->registerIRQThisCore();
+             dvi_->waitForValidLine();
+ 
+             dvi_->start();
+             while (!exclProc_.isExist())
+             {
+                 if (scaleMode8_7_)
+                 {
+                     // Default
+                     dvi_->convertScanBuffer12bppScaled16_7(34, 32, 288 * 2);
+                     // dvi_->convertScanBuffer12bppScaled16_7(0,0 , 320 * 2);
+                     //  34 + 252 + 34
+                     //  32 + 576 + 32
+                 }
+                 else
+                 {
+                     //
+                     dvi_->convertScanBuffer12bpp();
+                 }
+             }
+ 
+             dvi_->unregisterIRQThisCore();
+             dvi_->stop();
+#endif // SPI_SCREEN
+             exclProc_.processOrWaitIfExist();
         }
     }
 
@@ -724,21 +759,23 @@ namespace Frens
 
     void initDVandAudio(int marginTop, int marginBottom, size_t audioBufferSize)
     {
-        //
+#ifdef SPI_SCREEN
+        // Instantiate SPI derived class
+        dvi_ = std::make_unique<spi_buffer::SPI_Buffer>();
+#else
+        // Instantiate DVI derived class
         dvi_ = std::make_unique<dvi::DVI>(pio0, &DVICONFIG,
                                           dvi::getTiming640x480p60Hz());
-        //    dvi_->setAudioFreq(48000, 25200, 6144);
+        // DVI-specific audio setup (already guarded by #else)
         dvi_->setAudioFreq(DVIAUDIOFREQ, 28000, 6272);
-        // dvi_->setAudioFreq(53267, 28000, 6272);
-
         dvi_->allocateAudioBuffer(audioBufferSize);
-        //    dvi_->setExclusiveProc(&exclProc_);
+#endif // SPI_SCREEN
 
+        // Common setup using base class methods
         dvi_->getBlankSettings().top = marginTop * 2;
         dvi_->getBlankSettings().bottom = marginBottom * 2;
-        // dvi_->setScanLine(true);
-        // 空サンプル詰めとく
-        dvi_->getAudioRingBuffer().advanceWritePointer(255);
+        // Audio ring buffer access might need care if SPI version's is just a dummy
+        dvi_->getAudioRingBuffer().advanceWritePointer(255); // Should be safe even on dummy
     }
 
     /// @brief Init dv and audio with default audio buffer size of 256
@@ -801,6 +838,15 @@ namespace Frens
             mutex_init(&framebuffer_mutex);
         }
         initDVandAudio(marginTop, marginBottom, audiobufferSize);
+#ifdef SPI_SCREEN
+        // Core 1 launch remains the same, the behavior inside core1_main changes
+        if (usingFramebuffer)
+        {
+             multicore_launch_core1(coreFB_main); // Needs adaptation for SPI
+        } else {
+             multicore_launch_core1(core1_main);
+        }
+#else
         if (usingFramebuffer)
         {
             multicore_launch_core1(coreFB_main);
@@ -809,6 +855,7 @@ namespace Frens
         {
             multicore_launch_core1(core1_main);
         }
+#endif
         initVintageControllers(CPUFreqKHz);
         return ok;
     }
