@@ -38,14 +38,6 @@
 // Change pointer type to base class
 std::unique_ptr<ScreenOutput> dvi_;
 
-/* // Remove old conditional declarations
-#ifdef SPI_SCREEN
-std::unique_ptr<spi_buffer::SPI_Buffer> dvi_; // Use SPI_Buffer type
-#else
-std::unique_ptr<dvi::DVI> dvi_; // Keep original DVI type
-#endif // SPI_SCREEN
-*/
-
 util::ExclusiveProc exclProc_;
 char ErrorMessage[ERRORMESSAGESIZE];
 bool scaleMode8_7_ = true;
@@ -560,16 +552,18 @@ namespace Frens
             // We might still need waitForValidLine if core 0 is faster than the display rate
             // Alternatively, just sleep/yield to let other tasks run.
             // Let's use waitForValidLine for now to ensure sync
-             dvi_->registerIRQThisCore();
+
+            //  dvi_->registerIRQThisCore();
              dvi_->start();
              while (!exclProc_.isExist()) // Check if core 0 needs exclusive access
              {
-                dvi_->waitForValidLine(); // Wait until core 0 has provided a line
+                // commenting all this out while I try synchronous rendering for now
+                // dvi_->waitForValidLine(); // Wait until core 0 has provided a line
                 // IRQ handler processes the line
                 tight_loop_contents(); // Or maybe sleep/yield?
              }
              dvi_->stop();
-             dvi_->unregisterIRQThisCore();
+            //  dvi_->unregisterIRQThisCore();
 #else
             // Original DVI version
              dvi_->registerIRQThisCore();
@@ -838,15 +832,6 @@ namespace Frens
             mutex_init(&framebuffer_mutex);
         }
         initDVandAudio(marginTop, marginBottom, audiobufferSize);
-#ifdef SPI_SCREEN
-        // Core 1 launch remains the same, the behavior inside core1_main changes
-        if (usingFramebuffer)
-        {
-             multicore_launch_core1(coreFB_main); // Needs adaptation for SPI
-        } else {
-             multicore_launch_core1(core1_main);
-        }
-#else
         if (usingFramebuffer)
         {
             multicore_launch_core1(coreFB_main);
@@ -855,7 +840,6 @@ namespace Frens
         {
             multicore_launch_core1(core1_main);
         }
-#endif
         initVintageControllers(CPUFreqKHz);
         return ok;
     }
