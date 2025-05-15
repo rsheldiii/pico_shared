@@ -783,22 +783,22 @@ void menu(const char *title, char *errorMessage, bool isFatal, bool showSplash, 
                 // The emulator will delete this file after loading the game
                 FRESULT fr;
                 FIL fil;
-                printf("Creating /START\n");
-                fr = f_open(&fil, "/START", FA_CREATE_ALWAYS | FA_WRITE);
-                if (fr == FR_OK)
-                {
-                    auto bytes = f_puts("START", &fil);
-                    printf("Wrote %d bytes\n", bytes);
-                    fr = f_close(&fil);
-                    if (fr != FR_OK)
-                    {
-                        printf("Cannot close file /START:%d\n", fr);
-                    }
-                }
-                else
-                {
-                    printf("Cannot create file /START:%d\n", fr);
-                }
+                // printf("Creating /START\n");
+                // fr = f_open(&fil, "/START", FA_CREATE_ALWAYS | FA_WRITE);
+                // if (fr == FR_OK)
+                // {
+                //     auto bytes = f_puts("START", &fil);
+                //     printf("Wrote %d bytes\n", bytes);
+                //     fr = f_close(&fil);
+                //     if (fr != FR_OK)
+                //     {
+                //         printf("Cannot close file /START:%d\n", fr);
+                //     }
+                // }
+                // else
+                // {
+                //     printf("Cannot create file /START:%d\n", fr);
+                // }
                 break; // reboot
             }
             else if ((PAD1_Latch & A) == A && selectedRomOrFolder)

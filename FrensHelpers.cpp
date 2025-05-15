@@ -428,7 +428,7 @@ namespace Frens
             printf("Starting (%d) %s\n", strlen(selectedRom), selectedRom);
             printf("Checking for /START file. (Is start pressed in Menu?)\n");
             fr = f_unlink("/START");
-            if (fr == FR_NO_FILE)
+            if (true || fr == FR_NO_FILE) //TODO have to do this for some reason with SPI screen
             {
                 printf("Start not pressed, flashing rom.\n");
 #if PICO_RP2040
