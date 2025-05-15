@@ -558,9 +558,10 @@ namespace Frens
              while (!exclProc_.isExist()) // Check if core 0 needs exclusive access
              {
                 // commenting all this out while I try synchronous rendering for now
-                // dvi_->waitForValidLine(); // Wait until core 0 has provided a line
+                dvi_->waitForValidLine(); // Wait until core 0 has provided a line
+                static_cast<spi_buffer::SPI_Buffer*>(dvi_.get())->irqHandler();
                 // IRQ handler processes the line
-                tight_loop_contents(); // Or maybe sleep/yield?
+                // tight_loop_contents(); // Or maybe sleep/yield?
              }
              dvi_->stop();
             //  dvi_->unregisterIRQThisCore();

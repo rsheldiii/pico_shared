@@ -915,8 +915,8 @@ void menu(const char *title, char *errorMessage, bool isFatal, bool showSplash, 
             break;
         }
     }
-    free(screenBuffer);
-    free(buffer);
+    // free(screenBuffer);
+    // free(buffer);
 #if WII_PIN_SDA >= 0 and WII_PIN_SCL >= 0
     wiipad_end();
 #endif
