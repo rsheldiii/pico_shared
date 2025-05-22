@@ -557,7 +557,6 @@ namespace Frens
              dvi_->start();
              while (!exclProc_.isExist()) // Check if core 0 needs exclusive access
              {
-                // commenting all this out while I try synchronous rendering for now
                 dvi_->waitForValidLine(); // Wait until core 0 has provided a line
                 static_cast<spi_buffer::SPI_Buffer*>(dvi_.get())->irqHandler();
                 // IRQ handler processes the line
@@ -789,18 +788,31 @@ namespace Frens
         {
             printf("Error initializing LED: %d\n", rc);
         }
+
+#if defined(STATIC_ROM_IN_FLASH)
+#define STATIC_ROM_ADDRESS_OFFSET (1 * 1024 * 1024) // 1MB
+#endif
+
         // Calculate the address in flash where roms will be stored
-        printf("Flash binary start    : 0x%08x\n", &__flash_binary_start);
-        printf("Flash binary end      : 0x%08x\n", &__flash_binary_end);
+        printf("Flash binary start    : 0x%08lx\n", (uintptr_t)&__flash_binary_start);
+        printf("Flash binary end      : 0x%08lx\n", (uintptr_t)&__flash_binary_end);
         printf("Flash size in bytes   :   %8d (%d)Kbytes\n", PICO_FLASH_SIZE_BYTES, PICO_FLASH_SIZE_BYTES / 1024);
         uint8_t *flash_end = (uint8_t *)&__flash_binary_start + PICO_FLASH_SIZE_BYTES - 1;
-        printf("Flash end             : 0x%08x\n", flash_end);
-        printf("Size program in flash :   %8d bytes (%d) Kbytes\n", &__flash_binary_end - &__flash_binary_start, (&__flash_binary_end - &__flash_binary_start) / 1024);
+        printf("Flash end             : 0x%08lx\n", (uintptr_t)flash_end);
+        printf("Size program in flash :   %8ld bytes (%ld) Kbytes\n", (intptr_t)(&__flash_binary_end - &__flash_binary_start), ((intptr_t)(&__flash_binary_end - &__flash_binary_start)) / 1024);
+
+#if defined(STATIC_ROM_IN_FLASH)
+        ROM_FILE_ADDR = XIP_BASE + STATIC_ROM_ADDRESS_OFFSET;
+        printf("STATIC_ROM_IN_FLASH: ROM_FILE_ADDR forced to 0x%08lx\n", ROM_FILE_ADDR);
+        maxRomSize = flash_end - (uint8_t *)ROM_FILE_ADDR;
+        if (maxRomSize < 0) maxRomSize = 0; // Safety check
+#else
         // round ROM_FILE_ADDRESS address up to 4k boundary of flash_binary_end
         ROM_FILE_ADDR = ((uintptr_t)&__flash_binary_end + 0xFFF) & ~0xFFF;
         // calculate max rom size
         maxRomSize = flash_end - (uint8_t *)ROM_FILE_ADDR;
-        printf("ROM_FILE_ADDR         : 0x%08x\n", ROM_FILE_ADDR);
+#endif
+        printf("ROM_FILE_ADDR         : 0x%08lx\n", ROM_FILE_ADDR);
         printf("Max ROM size          :   %8d bytes (%d) KBytes\n", maxRomSize, maxRomSize / 1024);
 
         // reset settings to default in case SD card could not be mounted
@@ -814,10 +826,14 @@ namespace Frens
             // The watchdog timer is used to detect if the reboot was caused by the menu.
             // Use watchdog_enable_caused_reboot in stead of watchdog_caused_reboot because
             // when reset is pressed while in game, the watchdog will also be triggered.
+#if defined(BOOT_FROM_FLASH_ROM) && defined(STATIC_ROM_IN_FLASH)
+            printf("BOOT_FROM_FLASH_ROM & STATIC_ROM_IN_FLASH: Skipping SD card flashrom check.\n");
+#else
             if (watchdog_enable_caused_reboot())
             {
                 flashrom(selectedRom, swapbytes);
             }
+#endif
         }
         usingFramebuffer = useFrameBuffer;
         if (usingFramebuffer)
